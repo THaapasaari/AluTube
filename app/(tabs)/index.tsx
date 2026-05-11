@@ -18,16 +18,15 @@ import {
   inToMm,
   mmToIn,
   ftToM,
-  mToFt,
   lbsToKg,
   kgToLbs,
   NmToFtLb,
 } from '../../src/engineering/calculations';
-
-const DF_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
+import BeamDiagram from '../../src/components/BeamDiagram';
+import MiniChart from '../../src/components/MiniChart';
 
 export default function CalculatorScreen() {
-  const { units } = useSettings();
+  const { units, df } = useSettings();
   const imperial = units === 'imperial';
 
   // Raw string inputs
@@ -37,7 +36,6 @@ export default function CalculatorScreen() {
   const [load, setLoad] = useState('25');
   const [isCenter, setIsCenter] = useState(true);
   const [distance, setDistance] = useState('1000');
-  const [df, setDf] = useState(3);
   const [showAdvanced, setShowAdvanced] = useState<Record<string, boolean>>({});
 
   const toggleAdvanced = (key: string) =>
@@ -134,6 +132,24 @@ export default function CalculatorScreen() {
                 <SegBtn label="Custom" active={!isCenter} onPress={() => setIsCenter(false)} />
               </View>
             </View>
+
+            {/* Beam diagram — always visible, draggable */}
+            {siInputs.L > 0 && (
+              <BeamDiagram
+                L_mm={siInputs.L}
+                a_mm={isCenter ? siInputs.L / 2 : siInputs.a}
+                isCenter={isCenter}
+                imperial={imperial}
+                P_kg={siInputs.P_kg}
+                onChange={(newA_mm, newIsCenter) => {
+                  setIsCenter(newIsCenter);
+                  // Write distance back in the user's chosen unit
+                  const out = imperial ? mmToIn(newA_mm) : newA_mm;
+                  setDistance(out.toFixed(imperial ? 1 : 0));
+                }}
+              />
+            )}
+
             {!isCenter && (
               <>
                 <Divider />
@@ -145,22 +161,13 @@ export default function CalculatorScreen() {
                 />
               </>
             )}
-            <Divider />
-            {/* Design Factor */}
-            <View style={s.row}>
-              <Text style={s.label}>Design Factor</Text>
-              <View style={s.dfRow}>
-                {DF_OPTIONS.map((n) => (
-                  <TouchableOpacity
-                    key={n}
-                    style={[s.dfBtn, df === n && s.dfActive]}
-                    onPress={() => setDf(n)}
-                  >
-                    <Text style={[s.dfText, df === n && s.dfTextActive]}>{n}:1</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+          </View>
+
+          {/* Design Factor reminder — links to settings */}
+          <View style={s.dfReminder}>
+            <Text style={s.dfReminderLabel}>Design Factor</Text>
+            <Text style={s.dfReminderValue}>{df}:1</Text>
+            <Text style={s.dfReminderHint}>change in Settings ⚙</Text>
           </View>
 
           {/* ── Derived tube info ──────────────────────── */}
@@ -188,9 +195,18 @@ export default function CalculatorScreen() {
                 onToggleAdv={() => toggleAdvanced('defl')}
                 advContent={
                   <>
-                    <AdvRow label="Self-weight deflection (δ_self)" value={`${dispDefl(r.self.deltaS)} ${imperial ? 'in' : 'mm'}`} />
-                    <AdvRow label="Point load deflection (δ_point)" value={`${dispDefl(r.point.deltaPoint)} ${imperial ? 'in' : 'mm'}`} />
+                    <MiniChart
+                      title="Breakdown vs Limit"
+                      unit={imperial ? 'in' : 'mm'}
+                      limit={imperial ? mmToIn(r.limits.maxDeflection) : r.limits.maxDeflection}
+                      segments={[
+                        { label: 'Self-weight', value: imperial ? mmToIn(r.self.deltaS) : r.self.deltaS, color: colors.primaryDim },
+                        { label: 'Point load', value: imperial ? mmToIn(r.point.deltaPoint) : r.point.deltaPoint, color: colors.primary },
+                      ]}
+                    />
+                    <View style={{ height: 12 }} />
                     <AdvRow label="Formula (CPL)" value="δ = PL³ / (48EI)" />
+                    <AdvRow label="Off-centre formula" value="δ = Pb(L²−b²)^1.5 / (9√3·EI·L)" />
                     <AdvRow label="Self-weight formula" value="δ = 5wL⁴ / (384EI)" />
                     <AdvRow label="Limit source" value="L/120 serviceability" />
                   </>
@@ -201,17 +217,26 @@ export default function CalculatorScreen() {
                 title="Max Safe Point Load"
                 current={`${dispLoad(siInputs.P_kg)} ${mUnit}  (applied)`}
                 limit={`${dispLoad(r.limits.maxPointLoad)} ${mUnit}  (deflection limit)`}
-                ratio={siInputs.P_kg / r.limits.maxPointLoad}
+                ratio={r.limits.maxPointLoad > 0 ? siInputs.P_kg / r.limits.maxPointLoad : 1}
                 over={siInputs.P_kg > r.limits.maxPointLoad}
                 advKey="load"
                 showAdv={!!showAdvanced['load']}
                 onToggleAdv={() => toggleAdvanced('load')}
                 advContent={
                   <>
+                    <MiniChart
+                      title="Applied vs Allowable"
+                      unit={mUnit}
+                      limit={imperial ? kgToLbs(r.limits.maxPointLoad) : r.limits.maxPointLoad}
+                      segments={[
+                        { label: 'Applied load', value: imperial ? kgToLbs(siInputs.P_kg) : siInputs.P_kg, color: colors.primary },
+                      ]}
+                    />
+                    <View style={{ height: 12 }} />
+                    <AdvRow label="Max load (deflection)" value={`${dispLoad(r.limits.maxPointLoad)} ${mUnit}`} />
                     <AdvRow label="Max load (stress)" value={`${dispLoad(r.limits.maxPointLoadStress)} ${mUnit}`} />
                     <AdvRow label="Governing limit" value={r.limits.maxPointLoad <= r.limits.maxPointLoadStress ? 'Deflection' : 'Stress'} />
-                    <AdvRow label="Design Factor" value={`${df}:1`} />
-                    <AdvRow label="Yield Strength" value="255 N/mm²  (6061-T6)" />
+                    <AdvRow label="At position" value={isCenter ? 'Centre (L/2)' : `${dUnit === 'in' ? mmToIn(siInputs.a).toFixed(1) : siInputs.a.toFixed(0)} ${dUnit} from end`} />
                   </>
                 }
               />
@@ -227,9 +252,18 @@ export default function CalculatorScreen() {
                 onToggleAdv={() => toggleAdvanced('torq')}
                 advContent={
                   <>
-                    <AdvRow label="Self-weight moment (M_self)" value={`${dispMoment(r.self.Mself)} ${momentUnit}`} />
-                    <AdvRow label="Point load moment (M_point)" value={`${dispMoment(r.point.Mpoint)} ${momentUnit}`} />
+                    <MiniChart
+                      title="Breakdown vs Limit"
+                      unit={momentUnit}
+                      limit={imperial ? NmToFtLb(r.limits.maxTorque / 1000) : r.limits.maxTorque / 1000}
+                      segments={[
+                        { label: 'Self-weight', value: imperial ? NmToFtLb(r.self.Mself / 1000) : r.self.Mself / 1000, color: colors.primaryDim },
+                        { label: 'Point load', value: imperial ? NmToFtLb(r.point.Mpoint / 1000) : r.point.Mpoint / 1000, color: colors.primary },
+                      ]}
+                    />
+                    <View style={{ height: 12 }} />
                     <AdvRow label="Formula (CPL)" value="M = PL / 4" />
+                    <AdvRow label="Off-centre formula" value="M = P·a·b / L" />
                     <AdvRow label="Section modulus (Z)" value={`${r.props.Z.toFixed(0)} mm³`} />
                     <AdvRow label="Max = σ_allow × Z" value={`(255/${df}) × ${r.props.Z.toFixed(0)}`} />
                   </>
@@ -247,6 +281,15 @@ export default function CalculatorScreen() {
                 onToggleAdv={() => toggleAdvanced('tens')}
                 advContent={
                   <>
+                    <MiniChart
+                      title="Stress vs Allowable"
+                      unit="N/mm²"
+                      limit={r.limits.maxTension}
+                      segments={[
+                        { label: 'Bending stress', value: r.tension, color: colors.primary },
+                      ]}
+                    />
+                    <View style={{ height: 12 }} />
                     <AdvRow label="Formula" value="σ = M × (d_o/2) / I" />
                     <AdvRow label="I (second moment)" value={`${r.props.I.toFixed(0)} mm⁴`} />
                     <AdvRow label="Allowable stress" value={`255 / ${df} = ${r.limits.maxTension.toFixed(1)} N/mm²`} />
@@ -468,18 +511,26 @@ const s = StyleSheet.create({
   segActive: { borderColor: colors.primary, backgroundColor: 'rgba(0,212,255,0.12)' },
   segText: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
   segTextActive: { color: colors.primary },
-  dfRow: { flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' },
-  dfBtn: {
-    paddingVertical: 5,
-    paddingHorizontal: 9,
-    borderRadius: 7,
+  dfReminder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surfaceAlt,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 12,
+    gap: 10,
   },
-  dfActive: { borderColor: colors.primary, backgroundColor: 'rgba(0,212,255,0.15)' },
-  dfText: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
-  dfTextActive: { color: colors.primary },
+  dfReminderLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+  dfReminderValue: { fontSize: 18, color: colors.primary, fontWeight: '800' },
+  dfReminderHint: {
+    fontSize: 11,
+    color: colors.textDim,
+    fontStyle: 'italic',
+    marginLeft: 'auto',
+  },
   derivedCard: { paddingVertical: 4 },
   derivedRow: {
     flexDirection: 'row',

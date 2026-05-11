@@ -1,10 +1,14 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Pressable } from 'react-native';
+import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSettings, UnitSystem } from '../../src/hooks/useSettings';
+import { useSettings, UnitSystem, DesignFactor } from '../../src/hooks/useSettings';
 import { colors } from '../../src/theme/colors';
 
+const DF_OPTIONS: DesignFactor[] = [1, 2, 3, 4, 5, 6, 7];
+
 export default function SettingsScreen() {
-  const { units, setUnits } = useSettings();
+  const { units, setUnits, df, setDf } = useSettings();
+  const [dfPickerOpen, setDfPickerOpen] = useState(false);
 
   return (
     <SafeAreaView style={s.safe}>
@@ -14,6 +18,56 @@ export default function SettingsScreen() {
         <Section title="Default Units">
           <UnitToggle value={units} onChange={setUnits} />
         </Section>
+
+        <Section title="Design Factor">
+          <TouchableOpacity
+            style={s.dropdown}
+            onPress={() => setDfPickerOpen(true)}
+            activeOpacity={0.7}
+          >
+            <View>
+              <Text style={s.dropdownValue}>{df}:1</Text>
+              <Text style={s.dropdownHint}>
+                Tap to change · σ_allowable = σ_yield / {df}
+              </Text>
+            </View>
+            <Text style={s.dropdownChevron}>▾</Text>
+          </TouchableOpacity>
+        </Section>
+
+        <Modal
+          visible={dfPickerOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setDfPickerOpen(false)}
+        >
+          <Pressable style={s.modalBackdrop} onPress={() => setDfPickerOpen(false)}>
+            <Pressable style={s.modalSheet}>
+              <Text style={s.modalTitle}>Select Design Factor</Text>
+              {DF_OPTIONS.map((n) => (
+                <TouchableOpacity
+                  key={n}
+                  style={[s.modalOption, df === n && s.modalOptionActive]}
+                  onPress={() => {
+                    setDf(n);
+                    setDfPickerOpen(false);
+                  }}
+                  activeOpacity={0.6}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.modalOptionLabel, df === n && s.modalOptionLabelActive]}>
+                      {n}:1
+                    </Text>
+                    <Text style={s.modalOptionHint}>
+                      Allowable stress = {(255 / n).toFixed(1)} N/mm²
+                    </Text>
+                  </View>
+                  {df === n && <Text style={s.modalCheck}>✓</Text>}
+                </TouchableOpacity>
+              ))}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <Section title="Material">
           <View style={s.materialRow}>
@@ -153,4 +207,54 @@ const s = StyleSheet.create({
   infoLabel: { fontSize: 13, color: colors.textMuted, flex: 1 },
   infoValue: { fontSize: 13, color: colors.text, fontWeight: '600', textAlign: 'right' },
   body: { fontSize: 14, color: colors.textMuted, lineHeight: 22 },
+  dropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginHorizontal: -4,
+  },
+  dropdownValue: { fontSize: 22, color: colors.primary, fontWeight: '800', letterSpacing: 0.5 },
+  dropdownHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  dropdownChevron: { fontSize: 18, color: colors.primaryDim },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primaryDim,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 14,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  modalOptionActive: { backgroundColor: 'rgba(0,212,255,0.08)' },
+  modalOptionLabel: { fontSize: 18, fontWeight: '700', color: colors.text },
+  modalOptionLabelActive: { color: colors.primary },
+  modalOptionHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  modalCheck: { fontSize: 18, color: colors.primary, fontWeight: '700' },
 });

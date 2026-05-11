@@ -85,8 +85,11 @@ export function calcPointLoad(
   } else {
     const aVal = a ?? L / 2;
     const b = L - aVal;
-    // Roark's formula for max deflection off-centre simply-supported beam
-    deltaPoint = (P * b * (L ** 2 - b ** 2) ** 1.5) / (9 * Math.sqrt(3) * E * I * L);
+    // Roark — max deflection always occurs in the LONGER segment
+    const longer = Math.max(aVal, b);
+    deltaPoint =
+      (P * longer * (L ** 2 - longer ** 2) ** 1.5) /
+      (9 * Math.sqrt(3) * E * I * L);
     Mpoint = (P * aVal * b) / L;
   }
 
@@ -96,22 +99,27 @@ export function calcPointLoad(
 export function calcLimits(
   L: number,
   props: TubeProperties,
-  deltaSelf: number,
-  DF: number
+  self: SelfWeightEffects,
+  DF: number,
+  isCenter: boolean,
+  a?: number
 ): Limits {
   const maxDeflection = L / 120;
   const maxTension = SIGMA_YIELD / DF;
   const maxTorque = (SIGMA_YIELD / DF) * props.Z; // Nmm
-  // Max point load: deflection-limited (center load formula, most conservative)
-  const availDefl = maxDeflection - deltaSelf;
-  const maxPointLoad = availDefl > 0
-    ? (availDefl * 48 * E * props.I) / (L ** 3) / G
-    : 0;
-  // Max point load: stress-limited
-  const availMoment = maxTorque - (props.massPerMeter / 1000 * G / 1000 * L ** 2) / 8;
-  const maxPointLoadStress = availMoment > 0
-    ? (4 * availMoment) / (L * G)
-    : 0;
+
+  // Use a 1 kg reference load to get the per-kg deflection and moment for
+  // *this exact position*. Then scale up to find the load that reaches each limit.
+  const ref = calcPointLoad(1, L, props.I, isCenter, a);
+
+  const availDefl = maxDeflection - self.deltaS;
+  const maxPointLoad =
+    availDefl > 0 && ref.deltaPoint > 0 ? availDefl / ref.deltaPoint : 0;
+
+  const availMoment = maxTorque - self.Mself;
+  const maxPointLoadStress =
+    availMoment > 0 && ref.Mpoint > 0 ? availMoment / ref.Mpoint : 0;
+
   return { maxDeflection, maxTension, maxTorque, maxPointLoad, maxPointLoadStress };
 }
 
@@ -130,7 +138,7 @@ export function calcResults(inputs: CalcInputs): CalcResults {
   const props = calcTubeProperties(d_o, t);
   const self = calcSelfWeight(props, L);
   const point = calcPointLoad(P_kg, L, props.I, isCenter, a);
-  const limits = calcLimits(L, props, self.deltaS, DF);
+  const limits = calcLimits(L, props, self, DF, isCenter, a);
 
   const totalDelta = self.deltaS + point.deltaPoint;
   const totalMoment = self.Mself + point.Mpoint;
