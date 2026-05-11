@@ -36,25 +36,42 @@ export default function BeamDiagram({
   trackWidthRef.current = trackWidth;
   const LRef = useRef(L_mm);
   LRef.current = L_mm;
+  const aRef = useRef(a_mm);
+  aRef.current = a_mm;
+  const isCenterRef = useRef(isCenter);
+  isCenterRef.current = isCenter;
   const startPixelRef = useRef(0);
+
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   const panResponder = useMemo(
     () =>
       PanResponder.create({
+        // Claim the gesture immediately on touch — beats the ScrollView
         onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
         onMoveShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
+        // Refuse to give it back once we have it (otherwise ScrollView steals)
+        onPanResponderTerminationRequest: () => false,
+        onShouldBlockNativeResponder: () => true,
         onPanResponderGrant: () => {
-          startPixelRef.current = (displayA / L_mm) * trackWidthRef.current;
+          const w = trackWidthRef.current;
+          const a = isCenterRef.current ? LRef.current / 2 : aRef.current;
+          startPixelRef.current = w > 0 ? (a / LRef.current) * w : 0;
         },
         onPanResponderMove: (_, g) => {
           const w = trackWidthRef.current;
           if (w <= 0) return;
           const newPixel = Math.max(0, Math.min(w, startPixelRef.current + g.dx));
           const newA = (newPixel / w) * LRef.current;
-          onChange(newA, false); // dragging exits CPL mode
+          onChangeRef.current(newA, false); // dragging exits CPL mode
         },
+        onPanResponderRelease: () => {},
+        onPanResponderTerminate: () => {},
       }),
-    [displayA, L_mm, onChange]
+    []
   );
 
   const onLayout = (e: LayoutChangeEvent) => {
@@ -114,10 +131,11 @@ export default function BeamDiagram({
           <View style={[s.support, { left: -8 }]} />
           <View style={[s.support, { right: -8 }]} />
 
-          {/* Draggable handle */}
+          {/* Draggable handle — sits above the beam, on top of everything */}
           {trackWidth > 0 && (
             <View
               {...panResponder.panHandlers}
+              hitSlop={{ top: 20, bottom: 20, left: 16, right: 16 }}
               style={[
                 s.handle,
                 { left: pixelX - HANDLE_SIZE / 2 },
@@ -223,7 +241,11 @@ const s = StyleSheet.create({
     borderRadius: HANDLE_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,212,255,0.12)',
+    backgroundColor: 'rgba(0,212,255,0.18)',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    zIndex: 20,
+    elevation: 6,
   },
   handleInner: {
     width: 16,

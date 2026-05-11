@@ -86,6 +86,7 @@ export default function CalculatorScreen() {
         <ScrollView
           contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
+          canCancelContentTouches={false}
         >
           <Text style={s.heading}>AluTube</Text>
           <Text style={s.sub}>6061-T6 Aluminium  ·  {units === 'metric' ? 'Metric' : 'Imperial'}</Text>
