@@ -10,11 +10,11 @@ import {
 } from 'react-native';
 import { useState, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import { colors } from '../../src/theme/colors';
 import { useSettings } from '../../src/hooks/useSettings';
 import {
   calcResults,
+  deflectionAt,
   inToMm,
   mmToIn,
   ftToM,
@@ -23,7 +23,7 @@ import {
   NmToFtLb,
 } from '../../src/engineering/calculations';
 import BeamDiagram from '../../src/components/BeamDiagram';
-import MiniChart from '../../src/components/MiniChart';
+import ForceDiagram from '../../src/components/ForceDiagram';
 
 export default function CalculatorScreen() {
   const { units, df } = useSettings();
@@ -61,10 +61,6 @@ export default function CalculatorScreen() {
 
   const r = useMemo(() => (valid ? calcResults(siInputs) : null), [siInputs, valid]);
 
-  // Haptic feedback when limits breached
-  const prevOver = useMemo(() => r?.isDeflectionOver || r?.isTensionOver || r?.isTorqueOver, [r]);
-  if (prevOver) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-
   const dUnit = imperial ? 'in' : 'mm';
   const lUnit = imperial ? "ft" : 'm';
   const mUnit = imperial ? 'lbs' : 'kg';
@@ -86,7 +82,6 @@ export default function CalculatorScreen() {
         <ScrollView
           contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
-          canCancelContentTouches={false}
         >
           <Text style={s.heading}>AluTube</Text>
           <Text style={s.sub}>6061-T6 Aluminium  ·  {units === 'metric' ? 'Metric' : 'Imperial'}</Text>
@@ -196,18 +191,27 @@ export default function CalculatorScreen() {
                 onToggleAdv={() => toggleAdvanced('defl')}
                 advContent={
                   <>
-                    <MiniChart
-                      title="Breakdown vs Limit"
-                      unit={imperial ? 'in' : 'mm'}
-                      limit={imperial ? mmToIn(r.limits.maxDeflection) : r.limits.maxDeflection}
-                      segments={[
-                        { label: 'Self-weight', value: imperial ? mmToIn(r.self.deltaS) : r.self.deltaS, color: colors.primaryDim },
-                        { label: 'Point load', value: imperial ? mmToIn(r.point.deltaPoint) : r.point.deltaPoint, color: colors.primary },
-                      ]}
+                    <ForceDiagram
+                      mode="deflection"
+                      L={siInputs.L}
+                      a={isCenter ? siInputs.L / 2 : siInputs.a}
+                      P={siInputs.P_kg * 9.81}
+                      w={r.self.w}
+                      deflectionSampler={(x) =>
+                        deflectionAt(
+                          x,
+                          siInputs.L,
+                          r.props.I,
+                          siInputs.P_kg * 9.81,
+                          isCenter ? siInputs.L / 2 : siInputs.a,
+                          r.self.w
+                        )
+                      }
+                      maxLabel={`δ_max = ${dispDefl(r.totalDelta)} ${imperial ? 'in' : 'mm'}`}
                     />
-                    <View style={{ height: 12 }} />
+                    <AdvRow label="Self-weight δ" value={`${dispDefl(r.self.deltaS)} ${imperial ? 'in' : 'mm'}`} />
+                    <AdvRow label="Point load δ" value={`${dispDefl(r.point.deltaPoint)} ${imperial ? 'in' : 'mm'}`} />
                     <AdvRow label="Formula (CPL)" value="δ = PL³ / (48EI)" />
-                    <AdvRow label="Off-centre formula" value="δ = Pb(L²−b²)^1.5 / (9√3·EI·L)" />
                     <AdvRow label="Self-weight formula" value="δ = 5wL⁴ / (384EI)" />
                     <AdvRow label="Limit source" value="L/120 serviceability" />
                   </>
@@ -225,15 +229,14 @@ export default function CalculatorScreen() {
                 onToggleAdv={() => toggleAdvanced('load')}
                 advContent={
                   <>
-                    <MiniChart
-                      title="Applied vs Allowable"
-                      unit={mUnit}
-                      limit={imperial ? kgToLbs(r.limits.maxPointLoad) : r.limits.maxPointLoad}
-                      segments={[
-                        { label: 'Applied load', value: imperial ? kgToLbs(siInputs.P_kg) : siInputs.P_kg, color: colors.primary },
-                      ]}
+                    <ForceDiagram
+                      mode="full"
+                      L={siInputs.L}
+                      a={isCenter ? siInputs.L / 2 : siInputs.a}
+                      P={siInputs.P_kg * 9.81}
+                      w={r.self.w}
+                      maxLabel={`M_max = ${dispMoment(r.totalMoment)} ${momentUnit}`}
                     />
-                    <View style={{ height: 12 }} />
                     <AdvRow label="Max load (deflection)" value={`${dispLoad(r.limits.maxPointLoad)} ${mUnit}`} />
                     <AdvRow label="Max load (stress)" value={`${dispLoad(r.limits.maxPointLoadStress)} ${mUnit}`} />
                     <AdvRow label="Governing limit" value={r.limits.maxPointLoad <= r.limits.maxPointLoadStress ? 'Deflection' : 'Stress'} />
@@ -253,20 +256,19 @@ export default function CalculatorScreen() {
                 onToggleAdv={() => toggleAdvanced('torq')}
                 advContent={
                   <>
-                    <MiniChart
-                      title="Breakdown vs Limit"
-                      unit={momentUnit}
-                      limit={imperial ? NmToFtLb(r.limits.maxTorque / 1000) : r.limits.maxTorque / 1000}
-                      segments={[
-                        { label: 'Self-weight', value: imperial ? NmToFtLb(r.self.Mself / 1000) : r.self.Mself / 1000, color: colors.primaryDim },
-                        { label: 'Point load', value: imperial ? NmToFtLb(r.point.Mpoint / 1000) : r.point.Mpoint / 1000, color: colors.primary },
-                      ]}
+                    <ForceDiagram
+                      mode="moment"
+                      L={siInputs.L}
+                      a={isCenter ? siInputs.L / 2 : siInputs.a}
+                      P={siInputs.P_kg * 9.81}
+                      w={r.self.w}
+                      maxLabel={`M_max = ${dispMoment(r.totalMoment)} ${momentUnit}`}
                     />
-                    <View style={{ height: 12 }} />
+                    <AdvRow label="Self-weight moment" value={`${dispMoment(r.self.Mself)} ${momentUnit}`} />
+                    <AdvRow label="Point load moment" value={`${dispMoment(r.point.Mpoint)} ${momentUnit}`} />
                     <AdvRow label="Formula (CPL)" value="M = PL / 4" />
                     <AdvRow label="Off-centre formula" value="M = P·a·b / L" />
                     <AdvRow label="Section modulus (Z)" value={`${r.props.Z.toFixed(0)} mm³`} />
-                    <AdvRow label="Max = σ_allow × Z" value={`(255/${df}) × ${r.props.Z.toFixed(0)}`} />
                   </>
                 }
               />
@@ -282,15 +284,14 @@ export default function CalculatorScreen() {
                 onToggleAdv={() => toggleAdvanced('tens')}
                 advContent={
                   <>
-                    <MiniChart
-                      title="Stress vs Allowable"
-                      unit="N/mm²"
-                      limit={r.limits.maxTension}
-                      segments={[
-                        { label: 'Bending stress', value: r.tension, color: colors.primary },
-                      ]}
+                    <ForceDiagram
+                      mode="shear"
+                      L={siInputs.L}
+                      a={isCenter ? siInputs.L / 2 : siInputs.a}
+                      P={siInputs.P_kg * 9.81}
+                      w={r.self.w}
+                      maxLabel={`V_max = ${((Math.max(Math.abs((siInputs.P_kg * 9.81 * (siInputs.L - (isCenter ? siInputs.L / 2 : siInputs.a))) / siInputs.L + (r.self.w * siInputs.L) / 2))) ).toFixed(1)} N`}
                     />
-                    <View style={{ height: 12 }} />
                     <AdvRow label="Formula" value="σ = M × (d_o/2) / I" />
                     <AdvRow label="I (second moment)" value={`${r.props.I.toFixed(0)} mm⁴`} />
                     <AdvRow label="Allowable stress" value={`255 / ${df} = ${r.limits.maxTension.toFixed(1)} N/mm²`} />

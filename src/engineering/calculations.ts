@@ -165,6 +165,34 @@ export function calcResults(inputs: CalcInputs): CalcResults {
   };
 }
 
+/**
+ * Deflection at position x along a simply-supported beam.
+ * Combines distributed self-weight w (N/mm) and a point load P (N) at distance `a` from left.
+ * L, a, x in mm. Returns δ in mm (positive = downward).
+ */
+export function deflectionAt(
+  x: number,
+  L: number,
+  I: number,
+  P: number,
+  a: number,
+  w: number
+): number {
+  // Distributed load contribution
+  const δ_w = (w * x * (L ** 3 - 2 * L * x ** 2 + x ** 3)) / (24 * E * I);
+  // Point load contribution (Roark — depends on which side of load)
+  const b = L - a;
+  let δ_p = 0;
+  if (x <= a) {
+    δ_p = (P * b * x * (L ** 2 - b ** 2 - x ** 2)) / (6 * L * E * I);
+  } else {
+    δ_p =
+      (P * a * (L - x) * (2 * L * x - a ** 2 - x ** 2)) /
+      (6 * L * E * I);
+  }
+  return δ_w + δ_p;
+}
+
 // ── Unit conversions ──────────────────────────────────────────────────────────
 
 export const mmToIn = (mm: number) => mm / 25.4;
