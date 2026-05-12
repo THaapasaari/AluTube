@@ -157,8 +157,8 @@ export default function BeamDiagram({
   return (
     <View style={s.container}>
       <View style={s.labelRow}>
-        <Text style={s.miniLabel}>FROM LEFT</Text>
-        <Text style={s.distLabel}>{distLabel}</Text>
+        <Text style={s.miniLabel}>TUBE LENGTH</Text>
+        <Text style={s.lengthLabelTop}>{totalLabel}</Text>
       </View>
 
       <View style={s.stage}>
@@ -216,9 +216,8 @@ export default function BeamDiagram({
       </View>
 
       <View style={s.bottomLabelRow}>
-        <Text style={s.miniLabel}>0</Text>
-        <Text style={s.lengthLabel}>{totalLabel}</Text>
-        <Text style={s.miniLabel}>L</Text>
+        <Text style={s.miniLabel}>FROM LEFT</Text>
+        <Text style={s.distLabel}>{distLabel}</Text>
       </View>
     </View>
   );
@@ -329,4 +328,5 @@ const s = StyleSheet.create({
     marginTop: 6,
   },
   lengthLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
+  lengthLabelTop: { fontSize: 13, color: colors.text, fontWeight: '700' },
 });
