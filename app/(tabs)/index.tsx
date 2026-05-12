@@ -11,7 +11,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
 import { useSettings } from '../../src/hooks/useSettings';
@@ -449,10 +449,12 @@ function InputRow({
   onChangeText: (v: string) => void;
   placeholder?: string;
 }) {
+  const inputRef = useRef<TextInput>(null);
   return (
     <View style={s.row}>
       <Text style={s.label}>{label}</Text>
       <TextInput
+        ref={inputRef}
         style={s.input}
         value={value}
         onChangeText={onChangeText}
@@ -460,12 +462,15 @@ function InputRow({
         placeholder={placeholder}
         placeholderTextColor={colors.textDim}
         selectionColor={colors.primary}
-        onFocus={(e) => {
-          // Always place the cursor at the end of the existing value
-          const end = value.length;
-          e.currentTarget?.setNativeProps?.({
-            selection: { start: end, end },
-          });
+        onFocus={() => {
+          // Defer until after iOS finishes applying tap-based caret position,
+          // then jump the caret to the end of the value.
+          setTimeout(() => {
+            const end = value.length;
+            inputRef.current?.setNativeProps({
+              selection: { start: end, end },
+            });
+          }, 0);
         }}
       />
     </View>

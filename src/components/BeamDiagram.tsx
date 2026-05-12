@@ -1,6 +1,14 @@
 import { useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
+
+// Drag is "snapped" when within this fraction of the beam length from centre
+const SNAP_FRACTION = 0.025;
+// Two taps within this many ms register as a double-tap
+const DOUBLE_TAP_MS = 280;
+// A gesture with this little movement (in px) counts as a tap, not a drag
+const TAP_MAX_TRAVEL = 6;
 
 interface Props {
   L_mm: number;          // tube length in mm (SI)
@@ -45,6 +53,12 @@ export default function BeamDiagram({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
+  // Snap-state: remembers whether we're currently inside the centre snap zone,
+  // so we only fire one haptic per crossing (not on every move event).
+  const snappedRef = useRef(false);
+  // Tap detection for double-tap → reset to centre
+  const lastTapRef = useRef(0);
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -60,15 +74,46 @@ export default function BeamDiagram({
           const w = trackWidthRef.current;
           const a = isCenterRef.current ? LRef.current / 2 : aRef.current;
           startPixelRef.current = w > 0 ? (a / LRef.current) * w : 0;
+          snappedRef.current = isCenterRef.current;
         },
         onPanResponderMove: (_, g) => {
           const w = trackWidthRef.current;
           if (w <= 0) return;
           const newPixel = Math.max(0, Math.min(w, startPixelRef.current + g.dx));
-          const newA = (newPixel / w) * LRef.current;
-          onChangeRef.current(newA, false); // dragging exits CPL mode
+          let newA = (newPixel / w) * LRef.current;
+
+          // Centre snap with haptic
+          const centre = LRef.current / 2;
+          const snapWindow = LRef.current * SNAP_FRACTION;
+          const inSnapZone = Math.abs(newA - centre) < snapWindow;
+
+          if (inSnapZone) {
+            newA = centre;
+            if (!snappedRef.current) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              snappedRef.current = true;
+            }
+            onChangeRef.current(newA, true); // snapped → CPL mode on
+          } else {
+            snappedRef.current = false;
+            onChangeRef.current(newA, false);
+          }
         },
-        onPanResponderRelease: () => {},
+        onPanResponderRelease: (_, g) => {
+          // Treat a near-zero-travel gesture as a tap; two taps within
+          // DOUBLE_TAP_MS reset the load to the centre.
+          const travel = Math.hypot(g.dx, g.dy);
+          if (travel <= TAP_MAX_TRAVEL) {
+            const now = Date.now();
+            if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              onChangeRef.current(LRef.current / 2, true);
+              lastTapRef.current = 0;
+            } else {
+              lastTapRef.current = now;
+            }
+          }
+        },
         onPanResponderTerminate: () => {},
       }),
     []
