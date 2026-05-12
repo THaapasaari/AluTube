@@ -230,6 +230,7 @@ const s = StyleSheet.create({
   labelRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    justifyContent: 'flex-end',
     marginBottom: 4,
     gap: 10,
   },
@@ -239,6 +240,7 @@ const s = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     width: 95,
+    textAlign: 'right',
   },
   distLabel: { fontSize: 13, color: colors.primary, fontWeight: '700' },
   stage: {
@@ -324,6 +326,7 @@ const s = StyleSheet.create({
   bottomLabelRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    justifyContent: 'flex-end',
     marginTop: 6,
     gap: 10,
   },
