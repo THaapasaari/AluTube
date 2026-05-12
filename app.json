@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "AluTube",
-    "slug": "AluTube",
+    "name": "TubeCalc",
+    "slug": "TubeCalc",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "scheme": "alutube",
+    "scheme": "tubecalc",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",

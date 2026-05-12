@@ -10,6 +10,16 @@ const DOUBLE_TAP_MS = 280;
 // A gesture with this little movement (in px) counts as a tap, not a drag
 const TAP_MAX_TRAVEL = 6;
 
+// Convert "#RRGGBB" to "rgba(r,g,b,a)" for handle background tint.
+function alphaFor(hex: string, alpha: number): string {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex);
+  if (!m) return `rgba(0,212,255,${alpha})`;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 0xff},${(n >> 8) & 0xff},${n & 0xff},${alpha})`;
+}
+
+export type LoadStatus = 'safe' | 'warning' | 'danger';
+
 interface Props {
   L_mm: number;          // tube length in mm (SI)
   a_mm: number;          // distance from left end in mm
@@ -17,6 +27,8 @@ interface Props {
   onChange: (a_mm: number, isCenter: boolean) => void;
   imperial: boolean;
   P_kg: number;
+  /** Worst-of-all-limits status. Drives handle + arrow colour. */
+  status?: LoadStatus;
 }
 
 const PADDING = 24;
@@ -30,7 +42,14 @@ export default function BeamDiagram({
   onChange,
   imperial,
   P_kg,
+  status = 'safe',
 }: Props) {
+  const statusColor =
+    status === 'danger'
+      ? colors.danger
+      : status === 'warning'
+      ? colors.warning
+      : colors.success;
   const [trackWidth, setTrackWidth] = useState(0);
 
   // Position used for display: when in CPL mode, snap to centre
@@ -165,7 +184,7 @@ export default function BeamDiagram({
               pointerEvents="none"
             >
               <Text style={s.loadValue}>{loadLabel}</Text>
-              <Text style={s.arrow}>▼</Text>
+              <Text style={[s.arrow, { color: statusColor, textShadowColor: statusColor }]}>▼</Text>
             </View>
           )}
 
@@ -183,10 +202,14 @@ export default function BeamDiagram({
               hitSlop={{ top: 20, bottom: 20, left: 16, right: 16 }}
               style={[
                 s.handle,
-                { left: pixelX - HANDLE_SIZE / 2 },
+                {
+                  left: pixelX - HANDLE_SIZE / 2,
+                  borderColor: statusColor,
+                  backgroundColor: alphaFor(statusColor, 0.18),
+                },
               ]}
             >
-              <View style={s.handleInner} />
+              <View style={[s.handleInner, { backgroundColor: statusColor }]} />
             </View>
           )}
         </View>

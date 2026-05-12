@@ -30,7 +30,7 @@ import BeamDiagram from '../../src/components/BeamDiagram';
 import ForceDiagram from '../../src/components/ForceDiagram';
 
 export default function CalculatorScreen() {
-  const { units, df } = useSettings();
+  const { units, df, material } = useSettings();
   const imperial = units === 'imperial';
 
   // Raw string inputs
@@ -79,8 +79,8 @@ export default function CalculatorScreen() {
     const L = imperial ? ftToM(Lm) * 1000 : Lm * 1000; // → mm
     const P_kg = imperial ? lbsToKg(parseFloat(load) || 0) : parseFloat(load) || 0;
     const a = imperial ? inToMm(parseFloat(distance) || 0) : parseFloat(distance) || 0;
-    return { d_o, t, L, P_kg, isCenter, a, DF: df };
-  }, [diameter, thickness, length, load, isCenter, distance, df, imperial]);
+    return { d_o, t, L, P_kg, isCenter, a, DF: df, material };
+  }, [diameter, thickness, length, load, isCenter, distance, df, imperial, material]);
 
   const valid =
     siInputs.d_o > 0 &&
@@ -90,6 +90,15 @@ export default function CalculatorScreen() {
     siInputs.P_kg >= 0;
 
   const r = useMemo(() => (valid ? calcResults(siInputs) : null), [siInputs, valid]);
+
+  // Worst-of-all-limits status drives the beam handle colour.
+  const loadStatus: 'safe' | 'warning' | 'danger' = useMemo(() => {
+    if (!r) return 'safe';
+    if (r.isDeflectionOver || r.isTensionOver || r.isTorqueOver) return 'danger';
+    const maxRatio = Math.max(r.deflectionRatio, r.tensionRatio, r.torqueRatio);
+    if (maxRatio > 0.9) return 'warning';
+    return 'safe';
+  }, [r]);
 
   const dUnit = imperial ? 'in' : 'mm';
   const lUnit = imperial ? "ft" : 'm';
@@ -116,8 +125,8 @@ export default function CalculatorScreen() {
         >
           {/* 0 — Title block */}
           <View>
-            <Text style={s.heading}>AluTube</Text>
-            <Text style={s.sub}>6061-T6 Aluminium  ·  {units === 'metric' ? 'Metric' : 'Imperial'}</Text>
+            <Text style={s.heading}>TubeCalc</Text>
+            <Text style={s.sub}>{material.name} Aluminium  ·  {units === 'metric' ? 'Metric' : 'Imperial'}</Text>
           </View>
 
           {/* 1 — Sticky beam-diagram band */}
@@ -129,6 +138,7 @@ export default function CalculatorScreen() {
                 isCenter={isCenter}
                 imperial={imperial}
                 P_kg={siInputs.P_kg}
+                status={loadStatus}
                 onChange={(newA_mm, newIsCenter) => {
                   setIsCenter(newIsCenter);
                   const out = imperial ? mmToIn(newA_mm) : newA_mm;
@@ -273,7 +283,8 @@ export default function CalculatorScreen() {
                           r.props.I,
                           siInputs.P_kg * 9.81,
                           isCenter ? siInputs.L / 2 : siInputs.a,
-                          r.self.w
+                          r.self.w,
+                          material.E
                         )
                       }
                       maxLabel={`δ_max = ${dispDefl(r.totalDelta)} ${imperial ? 'in' : 'mm'}`}
@@ -363,7 +374,7 @@ export default function CalculatorScreen() {
                     />
                     <AdvRow label="Formula" value="σ = M × (d_o/2) / I" />
                     <AdvRow label="I (second moment)" value={`${r.props.I.toFixed(0)} mm⁴`} />
-                    <AdvRow label="Allowable stress" value={`255 / ${df} = ${r.limits.maxTension.toFixed(1)} N/mm²`} />
+                    <AdvRow label="Allowable stress" value={`${material.yield} / ${df} = ${r.limits.maxTension.toFixed(1)} N/mm²`} />
                     <AdvRow label="Utilisation" value={`${(r.tensionRatio * 100).toFixed(1)}%`} />
                   </>
                 }

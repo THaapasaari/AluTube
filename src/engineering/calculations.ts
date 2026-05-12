@@ -1,8 +1,6 @@
-// 6061-T6 aluminium material constants
-const E = 70000;        // N/mm²  Young's modulus
-const RHO = 2.71;       // g/cm³  density
-const SIGMA_YIELD = 255; // N/mm²  yield strength
-const G = 9.81;          // m/s²
+import { Material } from './materials';
+
+const G = 9.81; // m/s²
 
 export interface TubeProperties {
   d_o: number;   // outer diameter mm
@@ -51,16 +49,16 @@ export interface CalcResults {
   torqueRatio: number;
 }
 
-export function calcTubeProperties(d_o: number, t: number): TubeProperties {
+export function calcTubeProperties(d_o: number, t: number, density: number): TubeProperties {
   const d_i = d_o - 2 * t;
   const A = (Math.PI / 4) * (d_o ** 2 - d_i ** 2);
   const I = (Math.PI / 64) * (d_o ** 4 - d_i ** 4);
   const Z = I / (d_o / 2);
-  const massPerMeter = A * RHO; // g/m
+  const massPerMeter = A * density; // g/m
   return { d_o, d_i, t, A, I, Z, massPerMeter };
 }
 
-export function calcSelfWeight(props: TubeProperties, L: number): SelfWeightEffects {
+export function calcSelfWeight(props: TubeProperties, L: number, E: number): SelfWeightEffects {
   // w in N/mm: massPerMeter [g/m] → [kg/m] → [N/m] → [N/mm]
   const w = (props.massPerMeter / 1000) * G / 1000;
   const deltaS = (5 * w * L ** 4) / (384 * E * props.I);
@@ -73,6 +71,7 @@ export function calcPointLoad(
   L: number,
   I: number,
   isCenter: boolean,
+  E: number,
   a?: number  // distance from near end, mm — ignored when isCenter
 ): PointLoadEffects {
   const P = P_kg * G; // N
@@ -102,15 +101,16 @@ export function calcLimits(
   self: SelfWeightEffects,
   DF: number,
   isCenter: boolean,
+  material: Material,
   a?: number
 ): Limits {
   const maxDeflection = L / 120;
-  const maxTension = SIGMA_YIELD / DF;
-  const maxTorque = (SIGMA_YIELD / DF) * props.Z; // Nmm
+  const maxTension = material.yield / DF;
+  const maxTorque = (material.yield / DF) * props.Z; // Nmm
 
   // Use a 1 kg reference load to get the per-kg deflection and moment for
   // *this exact position*. Then scale up to find the load that reaches each limit.
-  const ref = calcPointLoad(1, L, props.I, isCenter, a);
+  const ref = calcPointLoad(1, L, props.I, isCenter, material.E, a);
 
   const availDefl = maxDeflection - self.deltaS;
   const maxPointLoad =
@@ -131,14 +131,15 @@ export interface CalcInputs {
   isCenter: boolean;
   a?: number;       // mm from near end (off-centre only)
   DF: number;
+  material: Material;
 }
 
 export function calcResults(inputs: CalcInputs): CalcResults {
-  const { d_o, t, L, P_kg, isCenter, a, DF } = inputs;
-  const props = calcTubeProperties(d_o, t);
-  const self = calcSelfWeight(props, L);
-  const point = calcPointLoad(P_kg, L, props.I, isCenter, a);
-  const limits = calcLimits(L, props, self, DF, isCenter, a);
+  const { d_o, t, L, P_kg, isCenter, a, DF, material } = inputs;
+  const props = calcTubeProperties(d_o, t, material.density);
+  const self = calcSelfWeight(props, L, material.E);
+  const point = calcPointLoad(P_kg, L, props.I, isCenter, material.E, a);
+  const limits = calcLimits(L, props, self, DF, isCenter, material, a);
 
   const totalDelta = self.deltaS + point.deltaPoint;
   const totalMoment = self.Mself + point.Mpoint;
@@ -176,7 +177,8 @@ export function deflectionAt(
   I: number,
   P: number,
   a: number,
-  w: number
+  w: number,
+  E: number
 ): number {
   // Distributed load contribution
   const δ_w = (w * x * (L ** 3 - 2 * L * x ** 2 + x ** 3)) / (24 * E * I);

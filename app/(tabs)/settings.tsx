@@ -1,14 +1,43 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Modal,
+  Pressable,
+} from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSettings, UnitSystem, DesignFactor } from '../../src/hooks/useSettings';
+import { useSettings, UnitSystem } from '../../src/hooks/useSettings';
 import { colors } from '../../src/theme/colors';
+import { MATERIALS, MATERIAL_IDS } from '../../src/engineering/materials';
 
-const DF_OPTIONS: DesignFactor[] = [1, 2, 3, 4, 5, 6, 7];
+const DF_PRESETS = [1, 2, 3, 4, 5, 6, 7];
 
 export default function SettingsScreen() {
-  const { units, setUnits, df, setDf } = useSettings();
+  const { units, setUnits, df, setDf, material, materialId, setMaterialId } = useSettings();
   const [dfPickerOpen, setDfPickerOpen] = useState(false);
+  const [matPickerOpen, setMatPickerOpen] = useState(false);
+  const [customDfOpen, setCustomDfOpen] = useState(false);
+  const [customDfText, setCustomDfText] = useState(String(df));
+
+  const isPresetDf = DF_PRESETS.includes(df);
+
+  const openCustomDf = () => {
+    setCustomDfText(String(df));
+    setDfPickerOpen(false);
+    setCustomDfOpen(true);
+  };
+
+  const saveCustomDf = () => {
+    const n = parseFloat(customDfText.replace(',', '.'));
+    if (Number.isFinite(n) && n > 0) {
+      setDf(n);
+      setCustomDfOpen(false);
+    }
+  };
 
   return (
     <SafeAreaView style={s.safe}>
@@ -19,22 +48,78 @@ export default function SettingsScreen() {
           <UnitToggle value={units} onChange={setUnits} />
         </Section>
 
-        <Section title="Design Factor">
+        <Section title="Material">
           <TouchableOpacity
             style={s.dropdown}
-            onPress={() => setDfPickerOpen(true)}
+            onPress={() => setMatPickerOpen(true)}
             activeOpacity={0.7}
           >
-            <View>
-              <Text style={s.dropdownValue}>{df}:1</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.dropdownValue}>{material.name}</Text>
               <Text style={s.dropdownHint}>
-                Tap to change · σ_allowable = σ_yield / {df}
+                E {material.E.toLocaleString()} N/mm²  ·  σ {material.yield} N/mm²  ·  ρ {material.density} g/cm³
               </Text>
             </View>
             <Text style={s.dropdownChevron}>▾</Text>
           </TouchableOpacity>
         </Section>
 
+        <Section title="Design Factor">
+          <TouchableOpacity
+            style={s.dropdown}
+            onPress={() => setDfPickerOpen(true)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={s.dropdownValue}>{isPresetDf ? `${df}:1` : `${df}:1  (Custom)`}</Text>
+              <Text style={s.dropdownHint}>
+                Allowable stress = σ_yield / {df} = {(material.yield / df).toFixed(1)} N/mm²
+              </Text>
+            </View>
+            <Text style={s.dropdownChevron}>▾</Text>
+          </TouchableOpacity>
+        </Section>
+
+        {/* Material picker modal */}
+        <Modal
+          visible={matPickerOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setMatPickerOpen(false)}
+        >
+          <Pressable style={s.modalBackdrop} onPress={() => setMatPickerOpen(false)}>
+            <Pressable style={s.modalSheet}>
+              <Text style={s.modalTitle}>Select Alloy</Text>
+              {MATERIAL_IDS.map((id) => {
+                const m = MATERIALS[id];
+                const active = id === materialId;
+                return (
+                  <TouchableOpacity
+                    key={id}
+                    style={[s.modalOption, active && s.modalOptionActive]}
+                    onPress={() => {
+                      setMaterialId(id);
+                      setMatPickerOpen(false);
+                    }}
+                    activeOpacity={0.6}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.modalOptionLabel, active && s.modalOptionLabelActive]}>
+                        {m.name}
+                      </Text>
+                      <Text style={s.modalOptionHint}>
+                        {m.note}  ·  σ {m.yield} N/mm²
+                      </Text>
+                    </View>
+                    {active && <Text style={s.modalCheck}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        {/* DF picker modal */}
         <Modal
           visible={dfPickerOpen}
           transparent
@@ -44,7 +129,7 @@ export default function SettingsScreen() {
           <Pressable style={s.modalBackdrop} onPress={() => setDfPickerOpen(false)}>
             <Pressable style={s.modalSheet}>
               <Text style={s.modalTitle}>Select Design Factor</Text>
-              {DF_OPTIONS.map((n) => (
+              {DF_PRESETS.map((n) => (
                 <TouchableOpacity
                   key={n}
                   style={[s.modalOption, df === n && s.modalOptionActive]}
@@ -59,30 +144,71 @@ export default function SettingsScreen() {
                       {n}:1
                     </Text>
                     <Text style={s.modalOptionHint}>
-                      Allowable stress = {(255 / n).toFixed(1)} N/mm²
+                      Allowable stress = {(material.yield / n).toFixed(1)} N/mm²
                     </Text>
                   </View>
                   {df === n && <Text style={s.modalCheck}>✓</Text>}
                 </TouchableOpacity>
               ))}
+              <TouchableOpacity
+                style={[s.modalOption, !isPresetDf && s.modalOptionActive]}
+                onPress={openCustomDf}
+                activeOpacity={0.6}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.modalOptionLabel, !isPresetDf && s.modalOptionLabelActive]}>
+                    Custom…
+                  </Text>
+                  <Text style={s.modalOptionHint}>
+                    {isPresetDf ? 'Enter your own design factor' : `Currently ${df}:1`}
+                  </Text>
+                </View>
+                {!isPresetDf && <Text style={s.modalCheck}>✓</Text>}
+              </TouchableOpacity>
             </Pressable>
           </Pressable>
         </Modal>
 
-        <Section title="Material">
-          <View style={s.materialRow}>
-            <Text style={s.materialLabel}>6061-T6 Aluminium</Text>
-            <Text style={s.materialSub}>Fixed — more materials in a future update</Text>
-          </View>
-        </Section>
-
-        <Section title="About">
-          <InfoRow label="Young's Modulus (E)" value="70 000 N/mm²" />
-          <InfoRow label="Yield Strength (σ)" value="255 N/mm²" />
-          <InfoRow label="Density (ρ)" value="2.71 g/cm³" />
-          <InfoRow label="Deflection Limit" value="L / 120  (serviceability)" />
-          <InfoRow label="Standard" value="EN 755-2 / AISC" />
-        </Section>
+        {/* Custom DF input modal */}
+        <Modal
+          visible={customDfOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setCustomDfOpen(false)}
+        >
+          <Pressable style={s.centerBackdrop} onPress={() => setCustomDfOpen(false)}>
+            <Pressable style={s.dialog}>
+              <Text style={s.modalTitle}>Custom Design Factor</Text>
+              <Text style={s.dialogHint}>
+                Enter a positive number. Allowable stress = σ_yield / DF.
+              </Text>
+              <TextInput
+                style={s.dialogInput}
+                value={customDfText}
+                onChangeText={setCustomDfText}
+                keyboardType="decimal-pad"
+                autoFocus
+                placeholder="e.g. 2.5"
+                placeholderTextColor={colors.textDim}
+                selectionColor={colors.primary}
+              />
+              <View style={s.dialogActions}>
+                <TouchableOpacity
+                  style={[s.dialogBtn, s.dialogCancel]}
+                  onPress={() => setCustomDfOpen(false)}
+                >
+                  <Text style={s.dialogCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.dialogBtn, s.dialogSave]}
+                  onPress={saveCustomDf}
+                >
+                  <Text style={s.dialogSaveText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <Section title="How Design Factor Works">
           <Text style={s.body}>
@@ -94,11 +220,11 @@ export default function SettingsScreen() {
           </Text>
         </Section>
 
-        <Section title="About This App">
+        <Section title="About TubeCalc">
           <Text style={s.body}>
-            AluTube calculates point-load structural limits for 6061-T6 aluminium
-            tubes modelled as a simply-supported beam. All formulas are verified
-            against reference spreadsheet calculations.{'\n\n'}
+            TubeCalc estimates point-load structural limits for aluminium tubes
+            modelled as a simply-supported beam. All formulas are verified against
+            reference spreadsheet calculations.{'\n\n'}
             Always have your rigging verified by a qualified structural engineer for
             safety-critical applications.
           </Text>
@@ -113,15 +239,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <View style={s.section}>
       <Text style={s.sectionTitle}>{title}</Text>
       <View style={s.card}>{children}</View>
-    </View>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={s.infoRow}>
-      <Text style={s.infoLabel}>{label}</Text>
-      <Text style={s.infoValue}>{value}</Text>
     </View>
   );
 }
@@ -193,19 +310,6 @@ const s = StyleSheet.create({
   },
   toggleText: { fontSize: 15, color: colors.textMuted, fontWeight: '500' },
   toggleTextActive: { color: colors.primary, fontWeight: '700' },
-  materialRow: { gap: 4 },
-  materialLabel: { fontSize: 16, color: colors.text, fontWeight: '600' },
-  materialSub: { fontSize: 13, color: colors.textMuted },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  infoLabel: { fontSize: 13, color: colors.textMuted, flex: 1 },
-  infoValue: { fontSize: 13, color: colors.text, fontWeight: '600', textAlign: 'right' },
   body: { fontSize: 14, color: colors.textMuted, lineHeight: 22 },
   dropdown: {
     flexDirection: 'row',
@@ -218,9 +322,10 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginHorizontal: -4,
+    gap: 10,
   },
-  dropdownValue: { fontSize: 22, color: colors.primary, fontWeight: '800', letterSpacing: 0.5 },
-  dropdownHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  dropdownValue: { fontSize: 20, color: colors.primary, fontWeight: '800', letterSpacing: 0.3 },
+  dropdownHint: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   dropdownChevron: { fontSize: 18, color: colors.primaryDim },
   modalBackdrop: {
     flex: 1,
@@ -257,4 +362,36 @@ const s = StyleSheet.create({
   modalOptionLabelActive: { color: colors.primary },
   modalOptionHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   modalCheck: { fontSize: 18, color: colors.primary, fontWeight: '700' },
+  centerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  dialog: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  dialogHint: { fontSize: 12, color: colors.textMuted, marginBottom: 12, lineHeight: 18 },
+  dialogInput: {
+    fontSize: 18,
+    color: colors.text,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+    fontWeight: '700',
+  },
+  dialogActions: { flexDirection: 'row', gap: 10 },
+  dialogBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  dialogCancel: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
+  dialogCancelText: { color: colors.textMuted, fontWeight: '600' },
+  dialogSave: { backgroundColor: colors.primary },
+  dialogSaveText: { color: colors.background, fontWeight: '700' },
 });
