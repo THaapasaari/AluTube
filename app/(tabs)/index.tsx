@@ -7,11 +7,15 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  Pressable,
+  Alert,
 } from 'react-native';
 import { useState, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
 import { useSettings } from '../../src/hooks/useSettings';
+import { usePresets, TubePreset } from '../../src/hooks/usePresets';
 import {
   calcResults,
   deflectionAt,
@@ -37,6 +41,32 @@ export default function CalculatorScreen() {
   const [isCenter, setIsCenter] = useState(true);
   const [distance, setDistance] = useState('1000');
   const [showAdvanced, setShowAdvanced] = useState<Record<string, boolean>>({});
+  const { presets, add: addPreset, remove: removePreset } = usePresets();
+  const [savePresetOpen, setSavePresetOpen] = useState(false);
+  const [presetName, setPresetName] = useState('');
+
+  const loadPreset = (p: TubePreset) => {
+    setDiameter(imperial ? mmToIn(p.d_o_mm).toFixed(3) : String(p.d_o_mm));
+    setThickness(imperial ? mmToIn(p.t_mm).toFixed(3) : String(p.t_mm));
+  };
+
+  const saveCurrentPreset = async () => {
+    const name = presetName.trim();
+    if (!name) return;
+    const d_o_mm = imperial ? inToMm(parseFloat(diameter) || 0) : parseFloat(diameter) || 0;
+    const t_mm = imperial ? inToMm(parseFloat(thickness) || 0) : parseFloat(thickness) || 0;
+    if (d_o_mm <= 0 || t_mm <= 0) return;
+    await addPreset(name, d_o_mm, t_mm);
+    setPresetName('');
+    setSavePresetOpen(false);
+  };
+
+  const confirmDeletePreset = (p: TubePreset) => {
+    Alert.alert('Delete preset?', `Remove "${p.name}" from your saved tubes?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => removePreset(p.id) },
+    ]);
+  };
 
   const toggleAdvanced = (key: string) =>
     setShowAdvanced((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -82,54 +112,16 @@ export default function CalculatorScreen() {
         <ScrollView
           contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
+          stickyHeaderIndices={[1]}
         >
-          <Text style={s.heading}>AluTube</Text>
-          <Text style={s.sub}>6061-T6 Aluminium  ·  {units === 'metric' ? 'Metric' : 'Imperial'}</Text>
-
-          {/* ── Inputs ───────────────────────────────────── */}
-          <SectionHeader title="Tube Dimensions" />
-          <View style={s.card}>
-            <InputRow
-              label={`Outer Diameter  (${dUnit})`}
-              value={diameter}
-              onChangeText={setDiameter}
-              placeholder={imperial ? '1.89' : '48'}
-            />
-            <Divider />
-            <InputRow
-              label={`Wall Thickness  (${dUnit})`}
-              value={thickness}
-              onChangeText={setThickness}
-              placeholder={imperial ? '0.17' : '4.3'}
-            />
-            <Divider />
-            <InputRow
-              label={`Length  (${lUnit})`}
-              value={length}
-              onChangeText={setLength}
-              placeholder={imperial ? '13.1' : '4'}
-            />
+          {/* 0 — Title block */}
+          <View>
+            <Text style={s.heading}>AluTube</Text>
+            <Text style={s.sub}>6061-T6 Aluminium  ·  {units === 'metric' ? 'Metric' : 'Imperial'}</Text>
           </View>
 
-          <SectionHeader title="Load" />
-          <View style={s.card}>
-            <InputRow
-              label={`Point Load  (${mUnit})`}
-              value={load}
-              onChangeText={setLoad}
-              placeholder={imperial ? '55' : '25'}
-            />
-            <Divider />
-            {/* CPL toggle */}
-            <View style={s.row}>
-              <Text style={s.label}>Load Position</Text>
-              <View style={s.segmentRow}>
-                <SegBtn label="Centre" active={isCenter} onPress={() => setIsCenter(true)} />
-                <SegBtn label="Custom" active={!isCenter} onPress={() => setIsCenter(false)} />
-              </View>
-            </View>
-
-            {/* Beam diagram — always visible, draggable */}
+          {/* 1 — Sticky beam-diagram band */}
+          <View style={s.stickyBar}>
             {siInputs.L > 0 && (
               <BeamDiagram
                 L_mm={siInputs.L}
@@ -139,34 +131,111 @@ export default function CalculatorScreen() {
                 P_kg={siInputs.P_kg}
                 onChange={(newA_mm, newIsCenter) => {
                   setIsCenter(newIsCenter);
-                  // Write distance back in the user's chosen unit
                   const out = imperial ? mmToIn(newA_mm) : newA_mm;
                   setDistance(out.toFixed(imperial ? 1 : 0));
                 }}
               />
             )}
-
-            {!isCenter && (
-              <>
-                <Divider />
-                <InputRow
-                  label={`Distance from End  (${dUnit})`}
-                  value={distance}
-                  onChangeText={setDistance}
-                  placeholder={imperial ? '39.4' : '1000'}
-                />
-              </>
-            )}
           </View>
 
-          {/* Design Factor reminder — links to settings */}
-          <View style={s.dfReminder}>
-            <Text style={s.dfReminderLabel}>Design Factor</Text>
-            <Text style={s.dfReminderValue}>{df}:1</Text>
-            <Text style={s.dfReminderHint}>change in Settings ⚙</Text>
+          {/* 2 — Inputs + DF reminder */}
+          <View>
+            <SectionHeader title="Tube Dimensions" />
+
+            {/* Preset chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={s.presetRowOuter}
+              contentContainerStyle={s.presetRow}
+              keyboardShouldPersistTaps="handled"
+            >
+              {presets.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={s.presetChip}
+                  onPress={() => loadPreset(p)}
+                  onLongPress={() => confirmDeletePreset(p)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.presetChipName}>{p.name}</Text>
+                  <Text style={s.presetChipMeta}>
+                    {imperial
+                      ? `${mmToIn(p.d_o_mm).toFixed(2)}″ × ${mmToIn(p.t_mm).toFixed(3)}″`
+                      : `Ø${p.d_o_mm} × ${p.t_mm} mm`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[s.presetChip, s.presetSaveChip]}
+                onPress={() => setSavePresetOpen(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={s.presetSaveLabel}>+ Save current</Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            <View style={s.card}>
+              <InputRow
+                label={`Outer Diameter  (${dUnit})`}
+                value={diameter}
+                onChangeText={setDiameter}
+                placeholder={imperial ? '1.89' : '48'}
+              />
+              <Divider />
+              <InputRow
+                label={`Wall Thickness  (${dUnit})`}
+                value={thickness}
+                onChangeText={setThickness}
+                placeholder={imperial ? '0.17' : '4.3'}
+              />
+              <Divider />
+              <InputRow
+                label={`Length  (${lUnit})`}
+                value={length}
+                onChangeText={setLength}
+                placeholder={imperial ? '13.1' : '4'}
+              />
+            </View>
+
+            <SectionHeader title="Load" />
+            <View style={s.card}>
+              <InputRow
+                label={`Point Load  (${mUnit})`}
+                value={load}
+                onChangeText={setLoad}
+                placeholder={imperial ? '55' : '25'}
+              />
+              <Divider />
+              <View style={s.row}>
+                <Text style={s.label}>Load Position</Text>
+                <View style={s.segmentRow}>
+                  <SegBtn label="Centre" active={isCenter} onPress={() => setIsCenter(true)} />
+                  <SegBtn label="Custom" active={!isCenter} onPress={() => setIsCenter(false)} />
+                </View>
+              </View>
+              {!isCenter && (
+                <>
+                  <Divider />
+                  <InputRow
+                    label={`Distance from End  (${dUnit})`}
+                    value={distance}
+                    onChangeText={setDistance}
+                    placeholder={imperial ? '39.4' : '1000'}
+                  />
+                </>
+              )}
+            </View>
+
+            <View style={s.dfReminder}>
+              <Text style={s.dfReminderLabel}>Design Factor</Text>
+              <Text style={s.dfReminderValue}>{df}:1</Text>
+              <Text style={s.dfReminderHint}>change in Settings ⚙</Text>
+            </View>
           </View>
 
-          {/* ── Derived tube info ──────────────────────── */}
+          {/* 3 — Results & derived info */}
+          <View>
           {r && (
             <>
               <SectionHeader title="Tube Properties" />
@@ -309,8 +378,56 @@ export default function CalculatorScreen() {
           )}
 
           <View style={{ height: 32 }} />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Save-preset modal */}
+      <Modal
+        visible={savePresetOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSavePresetOpen(false)}
+      >
+        <Pressable style={s.presetModalBackdrop} onPress={() => setSavePresetOpen(false)}>
+          <Pressable style={s.presetModalSheet}>
+            <Text style={s.presetModalTitle}>Save Tube Preset</Text>
+            <Text style={s.presetModalSub}>
+              {imperial
+                ? `${diameter || 0}″ × ${thickness || 0}″`
+                : `Ø${diameter || 0} × ${thickness || 0} mm`}
+            </Text>
+            <TextInput
+              style={s.presetModalInput}
+              value={presetName}
+              onChangeText={setPresetName}
+              placeholder={'e.g. "1.5″ Schedule 40"'}
+              placeholderTextColor={colors.textDim}
+              autoFocus
+              selectionColor={colors.primary}
+            />
+            <View style={s.presetModalActions}>
+              <TouchableOpacity
+                onPress={() => {
+                  setPresetName('');
+                  setSavePresetOpen(false);
+                }}
+                style={[s.presetModalBtn, s.presetModalCancel]}
+              >
+                <Text style={s.presetModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={saveCurrentPreset}
+                style={[s.presetModalBtn, s.presetModalSave]}
+                disabled={!presetName.trim()}
+              >
+                <Text style={s.presetModalSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={s.presetModalHint}>Long-press a chip to delete it.</Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -343,6 +460,13 @@ function InputRow({
         placeholder={placeholder}
         placeholderTextColor={colors.textDim}
         selectionColor={colors.primary}
+        onFocus={(e) => {
+          // Always place the cursor at the end of the existing value
+          const end = value.length;
+          e.currentTarget?.setNativeProps?.({
+            selection: { start: end, end },
+          });
+        }}
       />
     </View>
   );
@@ -461,7 +585,22 @@ const s = StyleSheet.create({
     marginTop: 8,
     letterSpacing: -0.5,
   },
-  sub: { fontSize: 13, color: colors.textMuted, marginBottom: 24, marginTop: 2 },
+  sub: { fontSize: 13, color: colors.textMuted, marginBottom: 16, marginTop: 2 },
+  stickyBar: {
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+    marginBottom: 8,
+    // shadow so it visually lifts above scrolling content
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
+  },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
@@ -609,4 +748,69 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   noResultText: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
+  presetRowOuter: { marginBottom: 8, marginHorizontal: -16 },
+  presetRow: { paddingHorizontal: 16, gap: 8 },
+  presetChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+    minWidth: 110,
+  },
+  presetChipName: { fontSize: 13, color: colors.text, fontWeight: '700' },
+  presetChipMeta: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
+  presetSaveChip: {
+    borderStyle: 'dashed',
+    borderColor: colors.primaryDim,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+  },
+  presetSaveLabel: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+  presetModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  presetModalSheet: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  presetModalTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primaryDim,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  presetModalSub: { fontSize: 16, color: colors.text, fontWeight: '700', marginBottom: 14 },
+  presetModalInput: {
+    fontSize: 16,
+    color: colors.text,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  presetModalActions: { flexDirection: 'row', gap: 10 },
+  presetModalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  presetModalCancel: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
+  presetModalCancelText: { color: colors.textMuted, fontWeight: '600' },
+  presetModalSave: { backgroundColor: colors.primary },
+  presetModalSaveText: { color: colors.background, fontWeight: '700' },
+  presetModalHint: { fontSize: 11, color: colors.textDim, marginTop: 10, textAlign: 'center', fontStyle: 'italic' },
 });
