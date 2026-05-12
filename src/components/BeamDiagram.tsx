@@ -12,8 +12,8 @@ interface Props {
 }
 
 const PADDING = 24;
-const BEAM_HEIGHT = 14;
-const HANDLE_SIZE = 36;
+const BEAM_HEIGHT = 6;
+const HANDLE_SIZE = 28;
 
 export default function BeamDiagram({
   L_mm,
@@ -152,21 +152,19 @@ export default function BeamDiagram({
         <Text style={s.lengthLabel}>{totalLabel}</Text>
         <Text style={s.miniLabel}>L</Text>
       </View>
-
-      <Text style={s.hint}>← Drag the handle to position the load →</Text>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   container: {
-    paddingVertical: 16,
+    paddingVertical: 8,
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   miniLabel: {
     fontSize: 10,
@@ -174,10 +172,10 @@ const s = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
   },
-  distLabel: { fontSize: 14, color: colors.primary, fontWeight: '700' },
+  distLabel: { fontSize: 13, color: colors.primary, fontWeight: '700' },
   stage: {
-    paddingTop: 42,    // room for arrow + label above beam
-    paddingBottom: 30, // room for handle below
+    paddingTop: 30,    // room for arrow + load label above beam
+    paddingBottom: 18, // room for handle below
     paddingHorizontal: PADDING,
   },
   trackArea: {
@@ -194,12 +192,12 @@ const s = StyleSheet.create({
   },
   support: {
     position: 'absolute',
-    bottom: -10,
+    bottom: -8,
     width: 0,
     height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 12,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderBottomWidth: 9,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: colors.textMuted,
@@ -207,14 +205,14 @@ const s = StyleSheet.create({
   },
   guideline: {
     position: 'absolute',
-    top: -32,
-    bottom: -20,
+    top: -24,
+    bottom: -14,
     width: 1,
     backgroundColor: colors.border,
   },
   loadArrowContainer: {
     position: 'absolute',
-    top: -38,
+    top: -28,
     alignItems: 'center',
     width: 24,
   },
@@ -260,14 +258,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: PADDING,
-    marginTop: 14,
+    marginTop: 6,
   },
-  lengthLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
-  hint: {
-    fontSize: 11,
-    color: colors.textDim,
-    textAlign: 'center',
-    marginTop: 10,
-    fontStyle: 'italic',
-  },
+  lengthLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
 });
