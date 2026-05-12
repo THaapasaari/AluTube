@@ -229,15 +229,16 @@ const s = StyleSheet.create({
   },
   labelRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'baseline',
     marginBottom: 4,
+    gap: 10,
   },
   miniLabel: {
     fontSize: 10,
     color: colors.textDim,
     fontWeight: '700',
     letterSpacing: 1,
+    width: 95,
   },
   distLabel: { fontSize: 13, color: colors.primary, fontWeight: '700' },
   stage: {
@@ -322,10 +323,9 @@ const s = StyleSheet.create({
   },
   bottomLabelRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: PADDING,
+    alignItems: 'baseline',
     marginTop: 6,
+    gap: 10,
   },
   lengthLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
   lengthLabelTop: { fontSize: 13, color: colors.text, fontWeight: '700' },
