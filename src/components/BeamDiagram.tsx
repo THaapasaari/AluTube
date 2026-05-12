@@ -20,7 +20,7 @@ interface Props {
 }
 
 const PADDING = 24;
-const BEAM_HEIGHT = 6;
+const BEAM_HEIGHT = 7.5;
 const HANDLE_SIZE = 28;
 
 export default function BeamDiagram({
