@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { Text } from 'react-native';
 import { colors } from '../../src/theme/colors';
 
 export default function TabLayout() {
@@ -13,14 +14,28 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Calculator',
+          title: 'Simple',
           tabBarIcon: ({ color }) => <TabIcon label="⊡" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="two-loads"
+        options={{
+          title: 'Two Loads',
+          tabBarIcon: ({ color }) => <TabIcon label="⊞" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="cantilever"
+        options={{
+          title: 'Cantilever',
+          tabBarIcon: ({ color }) => <TabIcon label="⊢" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -35,6 +50,5 @@ export default function TabLayout() {
 }
 
 function TabIcon({ label, color }: { label: string; color: string }) {
-  const { Text } = require('react-native');
   return <Text style={{ fontSize: 20, color }}>{label}</Text>;
 }

@@ -1,24 +1,32 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Svg, { Line, Path, Rect, Polygon, Text as SvgText, G } from 'react-native-svg';
 import { colors } from '../theme/colors';
 
-interface Props {
-  /** Tube length in mm */
-  L: number;
-  /** Distance from left support to point load in mm */
+export interface BeamLoadMarker {
+  /** Position along beam in mm */
   a: number;
-  /** Point load in N */
-  P: number;
-  /** Distributed self-weight in N/mm */
-  w: number;
-  /** Which diagrams to show */
+  /** Optional label drawn near the arrow (e.g. "P", "P1") */
+  label?: string;
+}
+
+export type SupportKind = 'simple' | 'cantilever-left';
+
+interface Props {
+  L: number;
+  w: number; // distributed self-weight, N/mm (drives the small arrows on the beam)
+  /** Where the point load(s) are. Used only for the beam illustration arrows. */
+  loads: BeamLoadMarker[];
+  /** Support boundary condition for the beam illustration. */
+  support: SupportKind;
+  /** What to render below the beam */
   mode: 'shear' | 'moment' | 'deflection' | 'full';
-  /** Height of the SVG canvas */
-  height?: number;
-  /** Optional pre-computed deflected shape sampler */
-  deflectionSampler?: (x: number) => number; // returns δ in mm
-  /** Label override for the max value annotation */
+  /** Samplers — required for whichever curve the mode renders. */
+  shearSampler?: (x: number) => number;
+  momentSampler?: (x: number) => number;
+  deflectionSampler?: (x: number) => number;
+  /** Annotation drawn on the most prominent curve. */
   maxLabel?: string;
+  height?: number;
 }
 
 const PAD_X = 32;
@@ -27,55 +35,35 @@ const N_SAMPLES = 80;
 
 export default function ForceDiagram({
   L,
-  a,
-  P,
   w,
+  loads,
+  support,
   mode,
-  height,
+  shearSampler,
+  momentSampler,
   deflectionSampler,
   maxLabel,
+  height,
 }: Props) {
-  // Total canvas height depends on mode
   const sections = mode === 'full' ? 3 : 1;
   const beamSectionH = 60;
   const diagramH = 90;
   const calcH = beamSectionH + sections * diagramH + 20;
   const H = height ?? calcH;
-  const W = 320; // viewBox width; SVG auto-scales
+  const W = 320;
 
-  // Reactions
-  const b = L - a;
-  const R_A = (P * b) / L + (w * L) / 2;
-  const R_B = (P * a) / L + (w * L) / 2;
+  const xs = Array.from({ length: N_SAMPLES + 1 }, (_, i) => (i / N_SAMPLES) * L);
+  const shear = shearSampler ? xs.map(shearSampler) : [];
+  const moment = momentSampler ? xs.map(momentSampler) : [];
+  const defl = deflectionSampler ? xs.map(deflectionSampler) : [];
 
-  // Shear and moment functions
-  const shearAt = (x: number) => {
-    let V = R_A - w * x;
-    if (x > a) V -= P;
-    return V;
-  };
-  const momentAt = (x: number) => {
-    let M = R_A * x - (w * x * x) / 2;
-    if (x > a) M -= P * (x - a);
-    return M;
-  };
+  const absMax = (arr: number[]) => (arr.length ? Math.max(...arr.map(Math.abs)) : 0);
+  const VmaxAbs = absMax(shear);
+  const MmaxAbs = absMax(moment);
+  const δmaxAbs = absMax(defl);
 
-  // Sample
-  const samples = Array.from({ length: N_SAMPLES + 1 }, (_, i) => {
-    const x = (i / N_SAMPLES) * L;
-    return { x, V: shearAt(x), M: momentAt(x), δ: deflectionSampler?.(x) ?? 0 };
-  });
-
-  // Extremes for scaling
-  const VmaxAbs = Math.max(...samples.map((s) => Math.abs(s.V)));
-  const MmaxAbs = Math.max(...samples.map((s) => Math.abs(s.M)));
-  const δmaxAbs = Math.max(...samples.map((s) => Math.abs(s.δ)));
-
-  // Pixel mapping
   const xToPx = (x: number) => PAD_X + (x / L) * (W - 2 * PAD_X);
-  const aPx = xToPx(a);
 
-  // Render sub-pieces
   const renderBeam = (y: number) => (
     <G>
       {/* Distributed load arrows */}
@@ -91,12 +79,11 @@ export default function ForceDiagram({
           </G>
         );
       })}
-      {/* w label */}
       <SvgText x={W - PAD_X + 4} y={y - 12} fill={colors.textMuted} fontSize="9">
         w
       </SvgText>
 
-      {/* The beam itself */}
+      {/* Beam */}
       <Rect
         x={PAD_X}
         y={y - 2}
@@ -107,111 +94,119 @@ export default function ForceDiagram({
         strokeWidth={0.5}
       />
 
-      {/* Point load arrow */}
-      <G>
-        <Line x1={aPx} y1={y - 30} x2={aPx} y2={y - 4} stroke={colors.primary} strokeWidth={2} />
-        <Polygon
-          points={`${aPx - 4},${y - 6} ${aPx + 4},${y - 6} ${aPx},${y - 1}`}
-          fill={colors.primary}
-        />
-        <SvgText x={aPx + 6} y={y - 22} fill={colors.text} fontSize="10" fontWeight="700">
-          P
-        </SvgText>
-      </G>
+      {/* Point load arrows */}
+      {loads.map((ld, i) => {
+        const aPx = xToPx(ld.a);
+        return (
+          <G key={i}>
+            <Line x1={aPx} y1={y - 30} x2={aPx} y2={y - 4} stroke={colors.primary} strokeWidth={2} />
+            <Polygon
+              points={`${aPx - 4},${y - 6} ${aPx + 4},${y - 6} ${aPx},${y - 1}`}
+              fill={colors.primary}
+            />
+            <SvgText x={aPx + 6} y={y - 22} fill={colors.text} fontSize="10" fontWeight="700">
+              {ld.label ?? 'P'}
+            </SvgText>
+          </G>
+        );
+      })}
 
-      {/* Reaction arrows pointing up at supports */}
-      <G>
-        <Line x1={PAD_X} y1={y + 22} x2={PAD_X} y2={y + 6} stroke={colors.success} strokeWidth={2} />
-        <Polygon
-          points={`${PAD_X - 4},${y + 9} ${PAD_X + 4},${y + 9} ${PAD_X},${y + 4}`}
-          fill={colors.success}
-        />
-        <SvgText x={PAD_X - 18} y={y + 20} fill={colors.success} fontSize="9">
-          R_A
-        </SvgText>
+      {/* Supports */}
+      {support === 'simple' && (
+        <G>
+          <Line x1={PAD_X} y1={y + 22} x2={PAD_X} y2={y + 6} stroke={colors.success} strokeWidth={2} />
+          <Polygon
+            points={`${PAD_X - 4},${y + 9} ${PAD_X + 4},${y + 9} ${PAD_X},${y + 4}`}
+            fill={colors.success}
+          />
+          <SvgText x={PAD_X - 18} y={y + 20} fill={colors.success} fontSize="9">
+            R_A
+          </SvgText>
+          <Line x1={W - PAD_X} y1={y + 22} x2={W - PAD_X} y2={y + 6} stroke={colors.success} strokeWidth={2} />
+          <Polygon
+            points={`${W - PAD_X - 4},${y + 9} ${W - PAD_X + 4},${y + 9} ${W - PAD_X},${y + 4}`}
+            fill={colors.success}
+          />
+          <SvgText x={W - PAD_X + 4} y={y + 20} fill={colors.success} fontSize="9">
+            R_B
+          </SvgText>
+        </G>
+      )}
+      {support === 'cantilever-left' && (
+        <G>
+          {/* Hatched wall on left */}
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Line
+              key={i}
+              x1={PAD_X - 4}
+              y1={y - 14 + i * 6}
+              x2={PAD_X - 14}
+              y2={y - 6 + i * 6}
+              stroke={colors.textMuted}
+              strokeWidth={1}
+            />
+          ))}
+          <Line
+            x1={PAD_X - 4}
+            y1={y - 14}
+            x2={PAD_X - 4}
+            y2={y + 20}
+            stroke={colors.textMuted}
+            strokeWidth={1.5}
+          />
+          <SvgText x={PAD_X - 20} y={y + 32} fill={colors.success} fontSize="9">
+            FIXED
+          </SvgText>
+        </G>
+      )}
 
-        <Line x1={W - PAD_X} y1={y + 22} x2={W - PAD_X} y2={y + 6} stroke={colors.success} strokeWidth={2} />
-        <Polygon
-          points={`${W - PAD_X - 4},${y + 9} ${W - PAD_X + 4},${y + 9} ${W - PAD_X},${y + 4}`}
-          fill={colors.success}
-        />
-        <SvgText x={W - PAD_X + 4} y={y + 20} fill={colors.success} fontSize="9">
-          R_B
-        </SvgText>
-      </G>
-
-      {/* Length label */}
-      <SvgText
-        x={W / 2}
-        y={y + 40}
-        fill={colors.textMuted}
-        fontSize="10"
-        textAnchor="middle"
-      >
+      {/* Length tick */}
+      <SvgText x={W / 2} y={y + 40} fill={colors.textMuted} fontSize="10" textAnchor="middle">
         L
-      </SvgText>
-      {/* a label tick */}
-      <Line x1={PAD_X} y1={y + 33} x2={aPx} y2={y + 33} stroke={colors.textMuted} strokeWidth={0.5} />
-      <SvgText x={(PAD_X + aPx) / 2} y={y + 31} fill={colors.textMuted} fontSize="9" textAnchor="middle">
-        a
       </SvgText>
     </G>
   );
 
-  // Diagram (V, M, or δ) — fills the area between curve and baseline
   const renderDiagram = (
     yTop: number,
     label: string,
+    values: number[],
     maxAbs: number,
-    accessor: (s: typeof samples[number]) => number,
-    maxValueLabel?: string
+    showMaxLabel?: string,
+    invertSign = false
   ) => {
+    if (!values.length) return null;
     const yMid = yTop + diagramH / 2;
     const half = diagramH * 0.4;
-    const valToPx = (v: number) => yMid - (maxAbs > 0 ? (v / maxAbs) * half : 0);
+    const sign = invertSign ? -1 : 1;
+    const valToPx = (v: number) => yMid - (maxAbs > 0 ? (sign * v / maxAbs) * half : 0);
 
-    // Build a path that goes baseline → curve → baseline
     let d = `M ${xToPx(0)} ${yMid}`;
-    samples.forEach((s) => {
-      d += ` L ${xToPx(s.x)} ${valToPx(accessor(s))}`;
+    values.forEach((v, i) => {
+      d += ` L ${xToPx(xs[i])} ${valToPx(v)}`;
     });
     d += ` L ${xToPx(L)} ${yMid} Z`;
 
-    // Find max value location for annotation
     let maxIdx = 0;
     let maxVal = 0;
-    samples.forEach((s, i) => {
-      const v = Math.abs(accessor(s));
-      if (v > maxVal) {
-        maxVal = v;
+    values.forEach((v, i) => {
+      const a = Math.abs(v);
+      if (a > maxVal) {
+        maxVal = a;
         maxIdx = i;
       }
     });
-    const maxPx = xToPx(samples[maxIdx].x);
-    const maxValPx = valToPx(accessor(samples[maxIdx]));
+    const maxPx = xToPx(xs[maxIdx]);
+    const maxValPx = valToPx(values[maxIdx]);
 
     return (
       <G>
-        {/* Y-axis label */}
         <SvgText x={6} y={yMid + 4} fill={colors.textMuted} fontSize="10" fontWeight="700">
           {label}
         </SvgText>
-
-        {/* Baseline (zero line) */}
-        <Line
-          x1={PAD_X}
-          y1={yMid}
-          x2={W - PAD_X}
-          y2={yMid}
-          stroke={colors.textDim}
-          strokeWidth={0.5}
-        />
-
-        {/* The filled curve */}
+        <Line x1={PAD_X} y1={yMid} x2={W - PAD_X} y2={yMid} stroke={colors.textDim} strokeWidth={0.5} />
         <Path d={d} fill="rgba(0,212,255,0.25)" stroke={colors.primary} strokeWidth={1.5} />
-
-        {/* Max value annotation */}
-        {maxValueLabel && (
+        {showMaxLabel && (
           <G>
             <Line
               x1={maxPx}
@@ -230,7 +225,7 @@ export default function ForceDiagram({
               fontWeight="700"
               textAnchor="middle"
             >
-              {maxValueLabel}
+              {showMaxLabel}
             </SvgText>
           </G>
         )}
@@ -238,43 +233,24 @@ export default function ForceDiagram({
     );
   };
 
-  let cursor = BEAM_Y;
-  let beamY = 0;
+  let cursor = BEAM_Y + 16;
+  const beamY = cursor;
+  cursor = beamY + 50;
 
   return (
     <View style={s.container}>
       <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
+        {renderBeam(beamY)}
         {mode === 'full' && (
           <>
-            {renderBeam((beamY = cursor + 16))}
-            {(cursor = beamY + 50) && null}
-            {renderDiagram(cursor, 'V', VmaxAbs, (s) => s.V, maxLabel)}
-            {(cursor = cursor + diagramH) && null}
-            {renderDiagram(cursor, 'M', MmaxAbs, (s) => s.M, maxLabel)}
+            {renderDiagram(cursor, 'V', shear, VmaxAbs, maxLabel)}
+            {renderDiagram(cursor + diagramH, 'M', moment, MmaxAbs, maxLabel)}
           </>
         )}
-        {mode === 'shear' && (
-          <>
-            {renderBeam((beamY = cursor + 16))}
-            {(cursor = beamY + 50) && null}
-            {renderDiagram(cursor, 'V', VmaxAbs, (s) => s.V, maxLabel)}
-          </>
-        )}
-        {mode === 'moment' && (
-          <>
-            {renderBeam((beamY = cursor + 16))}
-            {(cursor = beamY + 50) && null}
-            {renderDiagram(cursor, 'M', MmaxAbs, (s) => s.M, maxLabel)}
-          </>
-        )}
-        {mode === 'deflection' && (
-          <>
-            {renderBeam((beamY = cursor + 16))}
-            {(cursor = beamY + 50) && null}
-            {renderDiagram(cursor, 'δ', δmaxAbs, (s) => -s.δ, maxLabel)}
-            {/* δ is plotted negative so the curve bows downward like real deflection */}
-          </>
-        )}
+        {mode === 'shear' && renderDiagram(cursor, 'V', shear, VmaxAbs, maxLabel)}
+        {mode === 'moment' && renderDiagram(cursor, 'M', moment, MmaxAbs, maxLabel)}
+        {mode === 'deflection' &&
+          renderDiagram(cursor, 'δ', defl, δmaxAbs, maxLabel, /* invert */ true)}
       </Svg>
     </View>
   );
