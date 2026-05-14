@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings, UnitSystem } from '../../src/hooks/useSettings';
 import { colors } from '../../src/theme/colors';
-import { MATERIALS, MATERIAL_IDS } from '../../src/engineering/materials';
+import { MATERIALS, ALUMINIUM_IDS, STEEL_IDS } from '../../src/engineering/materials';
 import { AppHeader } from '../../src/components/CalculatorUI';
 
 const DF_PRESETS = [1, 2, 3, 4, 5, 6, 7];
@@ -91,31 +91,61 @@ export default function SettingsScreen() {
           <Pressable style={s.modalBackdrop} onPress={() => setMatPickerOpen(false)}>
             <Pressable style={s.modalSheet}>
               <Text style={s.modalTitle}>Select Alloy</Text>
-              {MATERIAL_IDS.map((id) => {
-                const m = MATERIALS[id];
-                const active = id === materialId;
-                return (
-                  <TouchableOpacity
-                    key={id}
-                    style={[s.modalOption, active && s.modalOptionActive]}
-                    onPress={() => {
-                      setMaterialId(id);
-                      setMatPickerOpen(false);
-                    }}
-                    activeOpacity={0.6}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.modalOptionLabel, active && s.modalOptionLabelActive]}>
-                        {m.name}
-                      </Text>
-                      <Text style={s.modalOptionHint}>
-                        {m.note}  ·  σ {m.yield} N/mm²
-                      </Text>
-                    </View>
-                    {active && <Text style={s.modalCheck}>✓</Text>}
-                  </TouchableOpacity>
-                );
-              })}
+              <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+                <Text style={s.groupHeader}>Aluminium</Text>
+                {ALUMINIUM_IDS.map((id) => {
+                  const m = MATERIALS[id];
+                  const active = id === materialId;
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      style={[s.modalOption, active && s.modalOptionActive]}
+                      onPress={() => {
+                        setMaterialId(id);
+                        setMatPickerOpen(false);
+                      }}
+                      activeOpacity={0.6}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.modalOptionLabel, active && s.modalOptionLabelActive]}>
+                          {m.name}
+                        </Text>
+                        <Text style={s.modalOptionHint}>
+                          {m.note}  ·  σ {m.yield} N/mm²
+                        </Text>
+                      </View>
+                      {active && <Text style={s.modalCheck}>✓</Text>}
+                    </TouchableOpacity>
+                  );
+                })}
+                <View style={s.sectionDivider} />
+                <Text style={s.groupHeader}>Steel</Text>
+                {STEEL_IDS.map((id) => {
+                  const m = MATERIALS[id];
+                  const active = id === materialId;
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      style={[s.modalOption, active && s.modalOptionActive]}
+                      onPress={() => {
+                        setMaterialId(id);
+                        setMatPickerOpen(false);
+                      }}
+                      activeOpacity={0.6}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.modalOptionLabel, active && s.modalOptionLabelActive]}>
+                          {m.name}
+                        </Text>
+                        <Text style={s.modalOptionHint}>
+                          {m.note}  ·  σ {m.yield} N/mm²
+                        </Text>
+                      </View>
+                      {active && <Text style={s.modalCheck}>✓</Text>}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </Pressable>
           </Pressable>
         </Modal>
@@ -334,6 +364,7 @@ const s = StyleSheet.create({
     paddingBottom: 40,
     borderTopWidth: 1,
     borderColor: colors.border,
+    maxHeight: '82%',
   },
   modalTitle: {
     fontSize: 13,
@@ -356,6 +387,22 @@ const s = StyleSheet.create({
   modalOptionLabelActive: { color: colors.primary },
   modalOptionHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   modalCheck: { fontSize: 18, color: colors.primary, fontWeight: '700' },
+  groupHeader: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primaryDim,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginHorizontal: 4,
+    marginTop: 12,
+    marginBottom: 14,
+  },
   centerBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
