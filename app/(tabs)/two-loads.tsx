@@ -40,7 +40,7 @@ import {
   NoResultBox,
   PresetChipStrip,
   SavePresetModal,
-  ResetButton,
+  AppHeader,
   ui,
 } from '../../src/components/CalculatorUI';
 
@@ -174,14 +174,11 @@ export default function TwoLoadsScreen() {
           keyboardShouldPersistTaps="handled"
           stickyHeaderIndices={[1]}
         >
-          <View style={s.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.heading}>Two Loads</Text>
-              <Text style={s.sub}>
-                {material.name} Aluminium · Simply supported · 2 point loads
-              </Text>
-            </View>
-            <ResetButton onPress={handleReset} />
+          <View>
+            <AppHeader tabName="Two Loads" onReset={handleReset} />
+            <Text style={s.sub}>
+              {material.name} Aluminium · Simply supported · 2 point loads
+            </Text>
           </View>
 
           <View style={s.stickyBar}>
@@ -416,15 +413,7 @@ export default function TwoLoadsScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 16, paddingBottom: 40 },
-  heading: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.primary,
-    marginTop: 8,
-    letterSpacing: -0.5,
-  },
-  sub: { fontSize: 13, color: colors.textMuted, marginBottom: 16, marginTop: 2 },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  sub: { fontSize: 12, color: colors.textMuted, marginBottom: 14, marginTop: 4, marginLeft: 56 },
   stickyBar: {
     backgroundColor: colors.background,
     borderBottomWidth: 1,

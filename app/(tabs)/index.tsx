@@ -37,7 +37,7 @@ import {
   NoResultBox,
   PresetChipStrip,
   SavePresetModal,
-  ResetButton,
+  AppHeader,
   ui,
 } from '../../src/components/CalculatorUI';
 
@@ -160,14 +160,11 @@ export default function CalculatorScreen() {
           keyboardShouldPersistTaps="handled"
           stickyHeaderIndices={[1]}
         >
-          <View style={s.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.heading}>TubeCalc</Text>
-              <Text style={s.sub}>
-                {material.name} Aluminium · {units === 'metric' ? 'Metric' : 'Imperial'}
-              </Text>
-            </View>
-            <ResetButton onPress={handleReset} />
+          <View>
+            <AppHeader tabName="Simple Load" onReset={handleReset} />
+            <Text style={s.sub}>
+              {material.name} Aluminium · {units === 'metric' ? 'Metric' : 'Imperial'}
+            </Text>
           </View>
 
           <View style={s.stickyBar}>
@@ -482,15 +479,7 @@ function SegBtn({
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 16, paddingBottom: 40 },
-  heading: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.primary,
-    marginTop: 8,
-    letterSpacing: -0.5,
-  },
-  sub: { fontSize: 13, color: colors.textMuted, marginBottom: 16, marginTop: 2 },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  sub: { fontSize: 12, color: colors.textMuted, marginBottom: 14, marginTop: 4, marginLeft: 56 },
   stickyBar: {
     backgroundColor: colors.background,
     borderBottomWidth: 1,

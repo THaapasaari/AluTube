@@ -142,6 +142,32 @@ export function DFReminder({ df }: { df: number }) {
   );
 }
 
+/**
+ * Standard top-of-screen header used on every calculator tab.
+ * Layout: [icon placeholder]  TubeCalc                  [Reset]
+ *                              <tab name, smaller font>
+ */
+export function AppHeader({
+  tabName,
+  onReset,
+}: {
+  tabName: string;
+  onReset?: () => void;
+}) {
+  return (
+    <View style={ui.appHeader}>
+      <View style={ui.appIconPlaceholder}>
+        <Text style={ui.appIconLetter}>T</Text>
+      </View>
+      <View style={ui.appHeaderTitles}>
+        <Text style={ui.appName}>TubeCalc</Text>
+        <Text style={ui.tabName}>{tabName}</Text>
+      </View>
+      {onReset && <ResetButton onPress={onReset} />}
+    </View>
+  );
+}
+
 export function ResetButton({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity style={ui.resetBtn} onPress={onPress} activeOpacity={0.7}>
@@ -399,6 +425,41 @@ export const ui = StyleSheet.create({
     alignItems: 'center',
   },
   noResultText: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
+  appHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  appIconPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,212,255,0.12)',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appIconLetter: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  appHeaderTitles: { flex: 1 },
+  appName: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: -0.3,
+  },
+  tabName: {
+    fontSize: 13,
+    color: colors.textMuted,
+    fontWeight: '500',
+    marginTop: 1,
+  },
   resetBtn: {
     flexDirection: 'row',
     alignItems: 'center',
