@@ -30,6 +30,8 @@ interface Props {
   P_kg: number;
   /** Worst-of-all-limits status. Drives handle + arrow colour. */
   status?: LoadStatus;
+  R_A_kN?: number;
+  R_B_kN?: number;
 }
 
 const PADDING = 24;
@@ -44,6 +46,8 @@ export default function BeamDiagram({
   imperial,
   P_kg,
   status = 'safe',
+  R_A_kN,
+  R_B_kN,
 }: Props) {
   const statusColor =
     status === 'danger'
@@ -202,6 +206,14 @@ export default function BeamDiagram({
           <View style={[s.support, { left: -8 }]} />
           <View style={[s.support, { right: -8 }]} />
 
+          {/* Reaction force labels above each support */}
+          {R_A_kN !== undefined && (
+            <Text pointerEvents="none" style={[s.reactionLabel, { left: 0 }]}>{R_A_kN.toFixed(2)} kN</Text>
+          )}
+          {R_B_kN !== undefined && (
+            <Text pointerEvents="none" style={[s.reactionLabel, { right: 0, textAlign: 'right' }]}>{R_B_kN.toFixed(2)} kN</Text>
+          )}
+
           {/* Draggable handle — sits above the beam, on top of everything */}
           {trackWidth > 0 && (
             <View
@@ -278,7 +290,6 @@ const s = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: colors.textMuted,
-    transform: [{ rotate: '180deg' }],
   },
   guideline: {
     position: 'absolute',
@@ -329,6 +340,14 @@ const s = StyleSheet.create({
     backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: colors.background,
+  },
+  reactionLabel: {
+    position: 'absolute',
+    top: -18,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    width: 64,
   },
   bottomLabelRow: {
     flexDirection: 'row',

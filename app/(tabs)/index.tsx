@@ -44,7 +44,7 @@ import {
 export default function CalculatorScreen({ isActive }: { isActive?: boolean }) {
   const scrollRef = useRef<ScrollView>(null);
   useEffect(() => { if (isActive) scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [isActive]);
-  const { units, df, material } = useSettings();
+  const { units, df, material, showReactions } = useSettings();
   const imperial = units === 'imperial';
 
   const [diameter, setDiameter] = useState('48');
@@ -179,6 +179,8 @@ export default function CalculatorScreen({ isActive }: { isActive?: boolean }) {
                 imperial={imperial}
                 P_kg={siInputs.P_kg}
                 status={loadStatus}
+                R_A_kN={showReactions && r ? (() => { const a = isCenter ? siInputs.L / 2 : siInputs.a; const b = siInputs.L - a; return (siInputs.P_kg * 9.81 * b / siInputs.L + r.self.w * siInputs.L / 2) / 1000; })() : undefined}
+                R_B_kN={showReactions && r ? (() => { const a = isCenter ? siInputs.L / 2 : siInputs.a; return (siInputs.P_kg * 9.81 * a / siInputs.L + r.self.w * siInputs.L / 2) / 1000; })() : undefined}
                 onChange={(newA_mm, newIsCenter) => {
                   setIsCenter(newIsCenter);
                   const out = imperial ? mmToIn(newA_mm) : newA_mm;

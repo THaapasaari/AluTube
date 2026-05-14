@@ -15,6 +15,8 @@ interface Props {
   P1_kg: number;
   P2_kg: number;
   status?: LoadStatus;
+  R_A_kN?: number;
+  R_B_kN?: number;
 }
 
 const PADDING = 24;
@@ -40,6 +42,8 @@ export default function BeamDiagramTwoLoads({
   P1_kg,
   P2_kg,
   status = 'safe',
+  R_A_kN,
+  R_B_kN,
 }: Props) {
   const [trackWidth, setTrackWidth] = useState(0);
   const statusColor =
@@ -72,6 +76,14 @@ export default function BeamDiagramTwoLoads({
           <View style={s.beam} />
           <View style={[s.support, { left: -8 }]} />
           <View style={[s.support, { right: -8 }]} />
+
+          {/* Reaction force labels above each support */}
+          {R_A_kN !== undefined && (
+            <Text pointerEvents="none" style={[s.reactionLabel, { left: 0 }]}>{R_A_kN.toFixed(2)} kN</Text>
+          )}
+          {R_B_kN !== undefined && (
+            <Text pointerEvents="none" style={[s.reactionLabel, { right: 0, textAlign: 'right' }]}>{R_B_kN.toFixed(2)} kN</Text>
+          )}
 
           {trackWidth > 0 && (
             <>
@@ -268,7 +280,6 @@ const s = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: colors.textMuted,
-    transform: [{ rotate: '180deg' }],
   },
   guideline: {
     position: 'absolute',
@@ -316,6 +327,14 @@ const s = StyleSheet.create({
     borderRadius: 7,
     borderWidth: 2,
     borderColor: colors.background,
+  },
+  reactionLabel: {
+    position: 'absolute',
+    top: -18,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    width: 64,
   },
   bottomLabels: { gap: 2 },
   bottomLabelRow: {

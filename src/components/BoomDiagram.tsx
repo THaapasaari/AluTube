@@ -14,6 +14,7 @@ const MIN_FRAC = 0.08;
 const MAX_FRAC = 0.92;
 // Snap fractions
 const SNAP_POINTS = [1 / 4, 1 / 3, 1 / 2, 2 / 3, 3 / 4];
+const SNAP_LABELS = ['¼', '⅓', '½', '⅔', '¾'];
 
 function alphaFor(hex: string, alpha: number): string {
   const m = /^#?([0-9a-fA-F]{6})$/.exec(hex);
@@ -54,6 +55,14 @@ export default function BoomDiagram({
 
   const clampedA = Math.max(MIN_FRAC * L_mm, Math.min(MAX_FRAC * L_mm, a_mm));
   const pixelX = trackWidth > 0 ? (clampedA / L_mm) * trackWidth : 0;
+
+  const snapLabel = (() => {
+    const snapWindow = L_mm * SNAP_FRACTION;
+    for (let i = 0; i < SNAP_POINTS.length; i++) {
+      if (Math.abs(clampedA - SNAP_POINTS[i] * L_mm) < snapWindow) return SNAP_LABELS[i];
+    }
+    return null;
+  })();
 
   const trackWidthRef = useRef(trackWidth);
   trackWidthRef.current = trackWidth;
@@ -185,7 +194,7 @@ export default function BoomDiagram({
           {trackWidth > 0 && (
             <View
               pointerEvents="none"
-              style={[s.supportTriangle, { left: pixelX - 7, borderTopColor: statusColor }]}
+              style={[s.supportTriangle, { left: pixelX - 7, borderBottomColor: statusColor }]}
             />
           )}
 
@@ -198,6 +207,13 @@ export default function BoomDiagram({
               <Text style={[s.arrow, { color: statusColor, textShadowColor: statusColor, transform: [{ rotate: '180deg' }] }]}>▼</Text>
               <Text style={[s.reactionLabel, { color: statusColor }]}>{loadLabel(R_kg)}</Text>
             </View>
+          )}
+
+          {/* Snap fraction label above handle */}
+          {trackWidth > 0 && snapLabel && (
+            <Text pointerEvents="none" style={[s.snapLabel, { left: pixelX - 12 }]}>
+              {snapLabel}
+            </Text>
           )}
 
           {/* Draggable handle at support position */}
@@ -300,7 +316,7 @@ const s = StyleSheet.create({
     height: 0,
     borderLeftWidth: 7,
     borderRightWidth: 7,
-    borderTopWidth: 10,
+    borderBottomWidth: 10,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
   },
@@ -314,6 +330,15 @@ const s = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     marginTop: 1,
+  },
+  snapLabel: {
+    position: 'absolute',
+    top: -26,
+    width: 24,
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primaryDim,
   },
   handle: {
     position: 'absolute',

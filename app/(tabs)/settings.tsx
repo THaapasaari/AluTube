@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Modal,
   Pressable,
+  Switch,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,7 +21,7 @@ const DF_PRESETS = [1, 2, 3, 4, 5, 6, 7];
 export default function SettingsScreen({ isActive }: { isActive?: boolean }) {
   const scrollRef = useRef<ScrollView>(null);
   useEffect(() => { if (isActive) scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [isActive]);
-  const { units, setUnits, df, setDf, material, materialId, setMaterialId } = useSettings();
+  const { units, setUnits, df, setDf, material, materialId, setMaterialId, showReactions, setShowReactions } = useSettings();
   const [dfPickerOpen, setDfPickerOpen] = useState(false);
   const [matPickerOpen, setMatPickerOpen] = useState(false);
   const [customDfOpen, setCustomDfOpen] = useState(false);
@@ -262,6 +263,15 @@ export default function SettingsScreen({ isActive }: { isActive?: boolean }) {
             safety-critical applications.
           </Text>
         </Section>
+
+        <Section title="Display">
+          <SwitchRow
+            label="Show Support Reactions"
+            hint="Displays R_A / R_B force labels above each support in beam diagrams"
+            value={showReactions}
+            onChange={setShowReactions}
+          />
+        </Section>
       </ScrollView>
     </SafeAreaView>
   );
@@ -272,6 +282,34 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <View style={s.section}>
       <Text style={s.sectionTitle}>{title}</Text>
       <View style={s.card}>{children}</View>
+    </View>
+  );
+}
+
+function SwitchRow({
+  label,
+  hint,
+  value,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <View style={s.switchRow}>
+      <View style={{ flex: 1 }}>
+        <Text style={s.switchLabel}>{label}</Text>
+        {hint ? <Text style={s.switchHint}>{hint}</Text> : null}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: colors.border, true: colors.primary }}
+        thumbColor={colors.background}
+        ios_backgroundColor={colors.border}
+      />
     </View>
   );
 }
@@ -321,6 +359,9 @@ const s = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  switchLabel: { fontSize: 15, color: colors.primary, fontWeight: '700' },
+  switchHint: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   toggleRow: { gap: 8 },
   toggleBtn: {
     paddingVertical: 12,

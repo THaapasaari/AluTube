@@ -47,7 +47,7 @@ import {
 export default function TwoLoadsScreen({ isActive }: { isActive?: boolean }) {
   const scrollRef = useRef<ScrollView>(null);
   useEffect(() => { if (isActive) scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [isActive]);
-  const { units, df, material } = useSettings();
+  const { units, df, material, showReactions } = useSettings();
   const imperial = units === 'imperial';
 
   const [diameter, setDiameter] = useState('48');
@@ -194,6 +194,8 @@ export default function TwoLoadsScreen({ isActive }: { isActive?: boolean }) {
                 P2_kg={siInputs.P2_kg}
                 imperial={imperial}
                 status={loadStatus}
+                R_A_kN={showReactions && r ? (siInputs.P1_kg * 9.81 * (siInputs.L - siInputs.a1) / siInputs.L + siInputs.P2_kg * 9.81 * (siInputs.L - siInputs.a2) / siInputs.L + r.self.w * siInputs.L / 2) / 1000 : undefined}
+                R_B_kN={showReactions && r ? (siInputs.P1_kg * 9.81 * siInputs.a1 / siInputs.L + siInputs.P2_kg * 9.81 * siInputs.a2 / siInputs.L + r.self.w * siInputs.L / 2) / 1000 : undefined}
                 onChange1={(newA) =>
                   setPos1((imperial ? mmToIn(newA) : newA).toFixed(imperial ? 1 : 0))
                 }
