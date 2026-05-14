@@ -177,7 +177,7 @@ export default function TwoLoadsScreen() {
           <View>
             <AppHeader tabName="Two Loads" onReset={handleReset} />
             <Text style={s.sub}>
-              {material.name} Aluminium · Simply supported · 2 point loads
+              {material.name} Aluminium · Simply supported · {units === 'metric' ? 'Metric' : 'Imperial'}
             </Text>
           </View>
 

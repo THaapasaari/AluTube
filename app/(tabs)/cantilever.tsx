@@ -158,7 +158,9 @@ export default function CantileverScreen() {
         >
           <View>
             <AppHeader tabName="Cantilever" onReset={handleReset} />
-            <Text style={s.sub}>{material.name} Aluminium · Fixed at one end</Text>
+            <Text style={s.sub}>
+              {material.name} Aluminium · Fixed at one end · {units === 'metric' ? 'Metric' : 'Imperial'}
+            </Text>
           </View>
 
           <View style={s.stickyBar}>

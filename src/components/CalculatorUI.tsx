@@ -170,9 +170,13 @@ export function AppHeader({
 
 export function ResetButton({ onPress }: { onPress: () => void }) {
   return (
-    <TouchableOpacity style={ui.resetBtn} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={ui.resetBtn}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityLabel="Reset inputs"
+    >
       <Text style={ui.resetIcon}>↻</Text>
-      <Text style={ui.resetText}>Reset</Text>
     </TouchableOpacity>
   );
 }
@@ -461,18 +465,16 @@ export const ui = StyleSheet.create({
     marginTop: 1,
   },
   resetBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    width: 36,
+    height: 36,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  resetIcon: { fontSize: 14, color: colors.primary, fontWeight: '700' },
-  resetText: { fontSize: 12, color: colors.text, fontWeight: '600' },
+  resetIcon: { fontSize: 20, color: colors.primary, fontWeight: '700' },
   presetRowOuter: { marginBottom: 8, marginHorizontal: -16 },
   presetRow: { paddingHorizontal: 16, gap: 8 },
   presetChip: {
