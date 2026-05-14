@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings, UnitSystem } from '../../src/hooks/useSettings';
 import { colors } from '../../src/theme/colors';
 import { MATERIALS, MATERIAL_IDS } from '../../src/engineering/materials';
+import { AppHeader } from '../../src/components/CalculatorUI';
 
 const DF_PRESETS = [1, 2, 3, 4, 5, 6, 7];
 
@@ -40,9 +41,9 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['top']}>
       <ScrollView contentContainerStyle={s.scroll}>
-        <Text style={s.heading}>Settings</Text>
+        <AppHeader tabName="Settings" />
 
         <Section title="Default Units">
           <UnitToggle value={units} onChange={setUnits} />
@@ -271,13 +272,6 @@ function UnitToggle({
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 20, paddingBottom: 40 },
-  heading: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 24,
-    marginTop: 8,
-  },
   section: { marginBottom: 24 },
   sectionTitle: {
     fontSize: 12,
