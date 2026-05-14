@@ -161,6 +161,7 @@ export function AppHeader({
       </View>
       <View style={ui.appHeaderTitles}>
         <Text style={ui.appName}>TubeCalc</Text>
+        <Text style={ui.appNameDivider}>│</Text>
         <Text style={ui.tabName}>{tabName}</Text>
       </View>
       {onReset && <ResetButton onPress={onReset} />}
@@ -451,18 +452,29 @@ export const ui = StyleSheet.create({
     fontWeight: '800',
     color: colors.primary,
   },
-  appHeaderTitles: { flex: 1 },
+  appHeaderTitles: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   appName: {
     fontSize: 22,
     fontWeight: '800',
     color: colors.text,
     letterSpacing: -0.3,
   },
+  appNameDivider: {
+    fontSize: 22,
+    color: colors.border,
+    fontWeight: '300',
+  },
   tabName: {
-    fontSize: 13,
-    color: colors.textMuted,
-    fontWeight: '500',
-    marginTop: 1,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: -0.2,
   },
   resetBtn: {
     width: 36,
