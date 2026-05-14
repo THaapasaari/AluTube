@@ -30,6 +30,9 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# Affinity Designer/Photo lock files
+*.af~lock~
+
 # local env files
 .env*.local
 
