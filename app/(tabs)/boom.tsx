@@ -22,10 +22,12 @@ import {
   NmToFtLb,
 } from '../../src/engineering/calculations';
 import {
-  calcResultsCantilever,
-  deflectionAtCantilever,
-} from '../../src/engineering/calc-cantilever';
-import BeamDiagramCantilever from '../../src/components/BeamDiagramCantilever';
+  calcResultsBoom,
+  shearAtBoom,
+  momentAtBoom,
+  deflectionAtBoom,
+} from '../../src/engineering/calc-boom';
+import BoomDiagram from '../../src/components/BoomDiagram';
 import ForceDiagram from '../../src/components/ForceDiagram';
 import {
   SectionHeader,
@@ -42,15 +44,18 @@ import {
   ui,
 } from '../../src/components/CalculatorUI';
 
-export default function CantileverScreen() {
+export default function BoomScreen() {
   const { units, df, material } = useSettings();
   const imperial = units === 'imperial';
 
   const [diameter, setDiameter] = useState('48');
   const [thickness, setThickness] = useState('5');
-  const [length, setLength] = useState('2');
+  const [length, setLength] = useState('4');
   const [load, setLoad] = useState('10');
-  const [distance, setDistance] = useState('2000');
+  // Support position — default 1/3 of L in mm; actual value in display units
+  const [supportDist, setSupportDist] = useState(
+    imperial ? mmToIn(4000 / 3).toFixed(1) : String(Math.round(4000 / 3))
+  );
   const [showAdvanced, setShowAdvanced] = useState<Record<string, boolean>>({});
   const { presets, add: addPreset, remove: removePreset } = usePresets();
   const [savePresetOpen, setSavePresetOpen] = useState(false);
@@ -60,17 +65,20 @@ export default function CantileverScreen() {
     setShowAdvanced((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleReset = () => {
-    Alert.alert('Reset inputs?', 'Restores tube, load and position to defaults.', [
+    Alert.alert('Reset inputs?', 'Restores tube and load to defaults; support to L/3.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Reset',
         style: 'destructive',
         onPress: () => {
+          const defL_mm = 4000;
           setDiameter(imperial ? mmToIn(48).toFixed(3) : '48');
           setThickness(imperial ? mmToIn(5).toFixed(3) : '5');
-          setLength(imperial ? mToFt(2).toFixed(2) : '2');
+          setLength(imperial ? mToFt(4).toFixed(2) : '4');
           setLoad(imperial ? kgToLbs(10).toFixed(1) : '10');
-          setDistance(imperial ? mmToIn(2000).toFixed(1) : '2000');
+          setSupportDist(
+            imperial ? mmToIn(defL_mm / 3).toFixed(1) : String(Math.round(defL_mm / 3))
+          );
         },
       },
     ]);
@@ -97,9 +105,13 @@ export default function CantileverScreen() {
     const Lm = parseFloat(length) || 0;
     const L = imperial ? ftToM(Lm) * 1000 : Lm * 1000;
     const P_kg = imperial ? lbsToKg(parseFloat(load) || 0) : parseFloat(load) || 0;
-    const a = imperial ? inToMm(parseFloat(distance) || 0) : parseFloat(distance) || 0;
-    return { d_o, t, L, P_kg, a: Math.max(0, Math.min(L, a)), DF: df, material };
-  }, [diameter, thickness, length, load, distance, df, material, imperial]);
+    const aRaw = imperial
+      ? inToMm(parseFloat(supportDist) || 0)
+      : parseFloat(supportDist) || 0;
+    // Clamp to 8%–92% of L to prevent CW going to infinity
+    const a = L > 0 ? Math.max(0.08 * L, Math.min(0.92 * L, aRaw)) : aRaw;
+    return { d_o, t, L, P_kg, a, DF: df, material };
+  }, [diameter, thickness, length, load, supportDist, df, material, imperial]);
 
   const valid =
     siInputs.d_o > 0 &&
@@ -108,37 +120,42 @@ export default function CantileverScreen() {
     siInputs.L > 0 &&
     siInputs.P_kg >= 0;
 
-  const r = useMemo(() => (valid ? calcResultsCantilever(siInputs) : null), [siInputs, valid]);
+  const r = useMemo(() => (valid ? calcResultsBoom(siInputs) : null), [siInputs, valid]);
 
   const samplers = useMemo(() => {
     if (!r) return null;
-    const a = siInputs.a;
-    const P = siInputs.P_kg * 9.81;
+    const { L, a, P_kg } = siInputs;
+    const P_N = P_kg * 9.81;
+    const CW_N = r.CW_N;
     const w = r.self.w;
-    const L = siInputs.L;
     const I = r.props.I;
     return {
-      shear: (x: number) => (x < a ? w * (L - x) + P : w * (L - x)),
-      moment: (x: number) =>
-        x <= a ? (w * (L - x) ** 2) / 2 + P * (a - x) : (w * (L - x) ** 2) / 2,
-      deflection: (x: number) =>
-        deflectionAtCantilever(x, L, I, P, a, w, material.E),
-      loads: [{ a, label: 'P' }],
+      shear: (x: number) => shearAtBoom(x, L, P_N, a, CW_N, w),
+      moment: (x: number) => momentAtBoom(x, L, P_N, a, CW_N, w),
+      deflection: (x: number) => deflectionAtBoom(x, L, I, P_N, a, CW_N, w, material.E),
+      loads: [
+        { a: 0, label: 'CW' },
+        { a: L, label: 'P' },
+      ] as { a: number; label: string }[],
+      supportFrac: a / L,
     };
   }, [r, siInputs, material.E]);
 
+  const maxPGoverning = r ? Math.min(r.limits.maxPointLoad, r.limits.maxPointLoadDefl) : 0;
+  const pRatio = maxPGoverning > 0 ? siInputs.P_kg / maxPGoverning : 1;
+  const isPOver = siInputs.P_kg > maxPGoverning;
+
   const loadStatus: 'safe' | 'warning' | 'danger' = useMemo(() => {
     if (!r) return 'safe';
-    if (r.isDeflectionOver || r.isTensionOver || r.isTorqueOver) return 'danger';
-    const mx = Math.max(r.deflectionRatio, r.tensionRatio, r.torqueRatio);
+    if (r.isMomentOver || r.isTensionOver || r.isDeflectionOver || isPOver) return 'danger';
+    const mx = Math.max(r.momentRatio, r.tensionRatio, r.deflectionRatio, pRatio);
     return mx > 0.9 ? 'warning' : 'safe';
-  }, [r]);
+  }, [r, isPOver, pRatio]);
 
   const dUnit = imperial ? 'in' : 'mm';
   const lUnit = imperial ? 'ft' : 'm';
   const mUnit = imperial ? 'lbs' : 'kg';
   const momentUnit = imperial ? 'ft·lbf' : 'Nm';
-  const dispDefl = (mm: number) => (imperial ? mmToIn(mm).toFixed(3) : mm.toFixed(2));
   const dispLoad = (kg: number) => (imperial ? kgToLbs(kg).toFixed(1) : kg.toFixed(2));
   const dispMoment = (Nmm: number) => {
     const Nm = Nmm / 1000;
@@ -157,23 +174,25 @@ export default function CantileverScreen() {
           stickyHeaderIndices={[1]}
         >
           <View>
-            <AppHeader tabName="Cantilever" onReset={handleReset} />
+            <AppHeader tabName="Simple Boom" onReset={handleReset} />
             <Text style={s.sub}>
-              {material.name} Aluminium · Fixed at one end · {units === 'metric' ? 'Metric' : 'Imperial'}
+              {material.name} Aluminium · Seesaw/lever · {units === 'metric' ? 'Metric' : 'Imperial'}
             </Text>
           </View>
 
           <View style={s.stickyBar}>
-            {siInputs.L > 0 && (
-              <BeamDiagramCantilever
+            {siInputs.L > 0 && r && (
+              <BoomDiagram
                 L_mm={siInputs.L}
                 a_mm={siInputs.a}
-                imperial={imperial}
                 P_kg={siInputs.P_kg}
+                CW_kg={r.CW_kg}
+                R_kg={r.R_kg}
+                imperial={imperial}
                 status={loadStatus}
                 onChange={(newA_mm) => {
                   const out = imperial ? mmToIn(newA_mm) : newA_mm;
-                  setDistance(out.toFixed(imperial ? 1 : 0));
+                  setSupportDist(out.toFixed(imperial ? 1 : 0));
                 }}
               />
             )}
@@ -200,12 +219,12 @@ export default function CantileverScreen() {
 
             <SectionHeader title="Load" />
             <View style={ui.card}>
-              <InputRow label={`Point Load  (${mUnit})`} value={load} onChangeText={setLoad} />
+              <InputRow label={`Point Load at Right End  (${mUnit})`} value={load} onChangeText={setLoad} />
               <Divider />
               <InputRow
-                label={`Distance From Fixed End  (${dUnit})`}
-                value={distance}
-                onChangeText={setDistance}
+                label={`Support Position from Left  (${dUnit})`}
+                value={supportDist}
+                onChangeText={setSupportDist}
               />
             </View>
 
@@ -215,25 +234,25 @@ export default function CantileverScreen() {
           <View>
             {r && (
               <>
-                <SectionHeader title="Tube Properties" />
+                <SectionHeader title="Boom Balance" />
                 <View style={[ui.card, ui.derivedCard]}>
                   <DerivedRow
-                    label="Inner Diameter"
-                    value={`${imperial ? mmToIn(r.props.d_i).toFixed(3) : r.props.d_i.toFixed(1)} ${dUnit}`}
+                    label="Counterweight (CW) needed"
+                    value={`${dispLoad(r.CW_kg)} ${mUnit}`}
                   />
-                  <DerivedRow label="Tube Weight" value={`${dispLoad(r.tubeWeight)} ${mUnit}`} />
                   <DerivedRow
-                    label="Total Load (tube + point)"
-                    value={`${dispLoad(r.totalLoad)} ${mUnit}`}
+                    label="Support reaction (R)"
+                    value={`${dispLoad(r.R_kg)} ${mUnit}`}
                   />
+                  <DerivedRow label="Tube weight" value={`${dispLoad(r.tubeWeight)} ${mUnit}`} />
                 </View>
 
                 <SectionHeader title="Results" />
 
                 <ResultCard
-                  title="Tip Deflection"
-                  current={`${dispDefl(r.totalDeflectionTip)} ${imperial ? 'in' : 'mm'}`}
-                  limit={`${dispDefl(r.limits.maxDeflection)} ${imperial ? 'in' : 'mm'} (L/120)`}
+                  title="Max Tip Deflection"
+                  current={`${imperial ? mmToIn(r.maxTipDeflection).toFixed(3) : r.maxTipDeflection.toFixed(2)} ${imperial ? 'in' : 'mm'}`}
+                  limit={`${imperial ? mmToIn(r.limits.maxDeflection).toFixed(3) : r.limits.maxDeflection.toFixed(2)} ${imperial ? 'in' : 'mm'} (L/120)`}
                   ratio={r.deflectionRatio}
                   over={r.isDeflectionOver}
                   showAdv={!!showAdvanced['defl']}
@@ -245,33 +264,33 @@ export default function CantileverScreen() {
                           mode="deflection"
                           L={siInputs.L}
                           w={r.self.w}
-                          support="cantilever-left"
+                          support="single-interior"
+                          supportFrac={samplers.supportFrac}
                           loads={samplers.loads}
                           deflectionSampler={samplers.deflection}
-                          maxLabel={`δ_max = ${dispDefl(r.totalDeflectionTip)} ${imperial ? 'in' : 'mm'}`}
+                          maxLabel={`δ_max = ${imperial ? mmToIn(r.maxTipDeflection).toFixed(3) : r.maxTipDeflection.toFixed(2)} ${imperial ? 'in' : 'mm'}`}
                         />
                       )}
                       <AdvRow
-                        label="Self-weight δ_tip"
-                        value={`${dispDefl(r.self.deltaS)} ${imperial ? 'in' : 'mm'}`}
+                        label="Right tip (P side)"
+                        value={`${imperial ? mmToIn(r.deflectionRightTip).toFixed(3) : r.deflectionRightTip.toFixed(2)} ${imperial ? 'in' : 'mm'}`}
                       />
                       <AdvRow
-                        label="Point load δ_tip"
-                        value={`${dispDefl(r.pointDeflectionTip)} ${imperial ? 'in' : 'mm'}`}
+                        label="Left tip (CW side)"
+                        value={`${imperial ? mmToIn(r.deflectionLeftTip).toFixed(3) : r.deflectionLeftTip.toFixed(2)} ${imperial ? 'in' : 'mm'}`}
                       />
-                      <AdvRow label="Tip-load formula" value="δ = PL³ / (3EI)" />
-                      <AdvRow label="Off-tip formula" value="δ_tip = Pa²(3L−a) / (6EI)" />
-                      <AdvRow label="Self-weight formula" value="δ = wL⁴ / (8EI)" />
+                      <AdvRow label="Right tip formula" value="δ = P·b³/(3EI) + w·b⁴/(8EI)" />
+                      <AdvRow label="Left tip formula" value="δ = CW·a³/(3EI) + w·a⁴/(8EI)" />
                     </>
                   }
                 />
 
                 <ResultCard
-                  title="Max Safe Point Load"
+                  title="Max Safe Tip Load"
                   current={`${dispLoad(siInputs.P_kg)} ${mUnit}  (applied)`}
-                  limit={`${dispLoad(r.limits.maxPointLoad)} ${mUnit}  (deflection limit)`}
-                  ratio={r.limits.maxPointLoad > 0 ? siInputs.P_kg / r.limits.maxPointLoad : 1}
-                  over={siInputs.P_kg > r.limits.maxPointLoad}
+                  limit={`${dispLoad(maxPGoverning)} ${mUnit}  (${r.limits.maxPointLoad <= r.limits.maxPointLoadDefl ? 'stress' : 'deflection'} limit)`}
+                  ratio={pRatio}
+                  over={isPOver}
                   showAdv={!!showAdvanced['load']}
                   onToggleAdv={() => toggleAdvanced('load')}
                   advContent={
@@ -281,64 +300,59 @@ export default function CantileverScreen() {
                           mode="full"
                           L={siInputs.L}
                           w={r.self.w}
-                          support="cantilever-left"
+                          support="single-interior"
+                          supportFrac={samplers.supportFrac}
                           loads={samplers.loads}
                           shearSampler={samplers.shear}
                           momentSampler={samplers.moment}
-                          maxLabel={`M_max = ${dispMoment(r.totalMomentFixed)} ${momentUnit}`}
+                          maxLabel={`M = ${dispMoment(r.momentAtSupport)} ${momentUnit}`}
                         />
                       )}
                       <AdvRow
-                        label="Max load (deflection)"
+                        label="Max P (stress)"
                         value={`${dispLoad(r.limits.maxPointLoad)} ${mUnit}`}
                       />
                       <AdvRow
-                        label="Max load (stress)"
-                        value={`${dispLoad(r.limits.maxPointLoadStress)} ${mUnit}`}
+                        label="Max P (deflection)"
+                        value={`${dispLoad(r.limits.maxPointLoadDefl)} ${mUnit}`}
                       />
                       <AdvRow
-                        label="Governing limit"
-                        value={r.limits.maxPointLoad <= r.limits.maxPointLoadStress ? 'Deflection' : 'Stress'}
-                      />
-                      <AdvRow
-                        label="At position"
-                        value={`${imperial ? mmToIn(siInputs.a).toFixed(1) : siInputs.a.toFixed(0)} ${dUnit} from fixed end`}
+                        label="CW at max P"
+                        value={`${dispLoad(r.limits.maxCombinedLoad - maxPGoverning)} ${mUnit}`}
                       />
                     </>
                   }
                 />
 
                 <ResultCard
-                  title="Fixed-end Moment"
-                  current={`${dispMoment(r.totalMomentFixed)} ${momentUnit}`}
+                  title="Support Moment"
+                  current={`${dispMoment(r.momentAtSupport)} ${momentUnit}`}
                   limit={`${dispMoment(r.limits.maxTorque)} ${momentUnit}`}
-                  ratio={r.torqueRatio}
-                  over={r.isTorqueOver}
+                  ratio={r.momentRatio}
+                  over={r.isMomentOver}
                   showAdv={!!showAdvanced['torq']}
                   onToggleAdv={() => toggleAdvanced('torq')}
                   advContent={
                     <>
                       {samplers && (
                         <ForceDiagram
-                          mode="moment"
+                          mode="full"
                           L={siInputs.L}
                           w={r.self.w}
-                          support="cantilever-left"
+                          support="single-interior"
+                          supportFrac={samplers.supportFrac}
                           loads={samplers.loads}
+                          shearSampler={samplers.shear}
                           momentSampler={samplers.moment}
-                          maxLabel={`M_max = ${dispMoment(r.totalMomentFixed)} ${momentUnit}`}
+                          maxLabel={`M = ${dispMoment(r.momentAtSupport)} ${momentUnit}`}
                         />
                       )}
                       <AdvRow
-                        label="Self-weight moment"
-                        value={`${dispMoment(r.self.Mself)} ${momentUnit}`}
+                        label="Max load P (stress limit)"
+                        value={`${dispLoad(r.limits.maxPointLoad)} ${mUnit}`}
                       />
-                      <AdvRow
-                        label="Point load moment"
-                        value={`${dispMoment(r.pointMomentFixed)} ${momentUnit}`}
-                      />
-                      <AdvRow label="M_point formula" value="M_fix = P · a" />
-                      <AdvRow label="M_self formula" value="M_fix = wL²/2" />
+                      <AdvRow label="Formula" value="|M| = P·b + w·b²/2" />
+                      <AdvRow label="Where b" value="L − support position" />
                       <AdvRow
                         label="Section modulus (Z)"
                         value={`${r.props.Z.toFixed(0)} mm³`}
@@ -348,7 +362,7 @@ export default function CantileverScreen() {
                 />
 
                 <ResultCard
-                  title="Bending Stress (at fixed end)"
+                  title="Bending Stress"
                   current={`${r.tension.toFixed(2)} N/mm²`}
                   limit={`${r.limits.maxTension.toFixed(1)} N/mm²  (σ_yield/${df})`}
                   ratio={r.tensionRatio}
@@ -362,7 +376,8 @@ export default function CantileverScreen() {
                           mode="shear"
                           L={siInputs.L}
                           w={r.self.w}
-                          support="cantilever-left"
+                          support="single-interior"
+                          supportFrac={samplers.supportFrac}
                           loads={samplers.loads}
                           shearSampler={samplers.shear}
                         />
@@ -372,7 +387,14 @@ export default function CantileverScreen() {
                         label="Allowable stress"
                         value={`${material.yield} / ${df} = ${r.limits.maxTension.toFixed(1)} N/mm²`}
                       />
-                      <AdvRow label="Utilisation" value={`${(r.tensionRatio * 100).toFixed(1)}%`} />
+                      <AdvRow
+                        label="I (second moment)"
+                        value={`${r.props.I.toFixed(0)} mm⁴`}
+                      />
+                      <AdvRow
+                        label="Utilisation"
+                        value={`${(r.tensionRatio * 100).toFixed(1)}%`}
+                      />
                     </>
                   }
                 />

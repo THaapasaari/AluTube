@@ -14,6 +14,7 @@ import {
   Modal,
   Pressable,
   Alert,
+  Image,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { TubePreset } from '../hooks/usePresets';
@@ -47,7 +48,7 @@ export function InputRow({
         ref={inputRef}
         style={ui.input}
         value={value}
-        onChangeText={onChangeText}
+        onChangeText={(v) => onChangeText(v.replace(',', '.'))}
         keyboardType="decimal-pad"
         placeholder={placeholder}
         placeholderTextColor={colors.textDim}
@@ -156,9 +157,10 @@ export function AppHeader({
 }) {
   return (
     <View style={ui.appHeader}>
-      <View style={ui.appIconPlaceholder}>
-        <Text style={ui.appIconLetter}>T</Text>
-      </View>
+      <Image
+        source={require('../../assets/TubeCalcApp_icon.png')}
+        style={ui.appIcon}
+      />
       <View style={ui.appHeaderTitles}>
         <Text style={ui.appName}>TubeCalc</Text>
         <Text style={ui.appNameDivider}>│</Text>
@@ -437,20 +439,10 @@ export const ui = StyleSheet.create({
     marginTop: 4,
     marginBottom: 4,
   },
-  appIconPlaceholder: {
+  appIcon: {
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: 'rgba(0,212,255,0.12)',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  appIconLetter: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.primary,
   },
   appHeaderTitles: {
     flex: 1,

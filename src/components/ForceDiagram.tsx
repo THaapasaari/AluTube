@@ -9,7 +9,7 @@ export interface BeamLoadMarker {
   label?: string;
 }
 
-export type SupportKind = 'simple' | 'cantilever-left';
+export type SupportKind = 'simple' | 'cantilever-left' | 'single-interior';
 
 interface Props {
   L: number;
@@ -18,6 +18,8 @@ interface Props {
   loads: BeamLoadMarker[];
   /** Support boundary condition for the beam illustration. */
   support: SupportKind;
+  /** Used with support='single-interior': pivot position as fraction of L (0–1) */
+  supportFrac?: number;
   /** What to render below the beam */
   mode: 'shear' | 'moment' | 'deflection' | 'full';
   /** Samplers — required for whichever curve the mode renders. */
@@ -38,6 +40,7 @@ export default function ForceDiagram({
   w,
   loads,
   support,
+  supportFrac,
   mode,
   shearSampler,
   momentSampler,
@@ -157,6 +160,26 @@ export default function ForceDiagram({
           <SvgText x={PAD_X - 20} y={y + 32} fill={colors.success} fontSize="9">
             FIXED
           </SvgText>
+        </G>
+      )}
+
+      {support === 'single-interior' && supportFrac !== undefined && (
+        <G>
+          {/* Pivot triangle below beam */}
+          {(() => {
+            const px = PAD_X + supportFrac * (W - 2 * PAD_X);
+            return (
+              <G>
+                <Polygon
+                  points={`${px - 5},${y + 10} ${px + 5},${y + 10} ${px},${y + 3}`}
+                  fill={colors.success}
+                />
+                <SvgText x={px} y={y + 22} fill={colors.success} fontSize="9" textAnchor="middle">
+                  R
+                </SvgText>
+              </G>
+            );
+          })()}
         </G>
       )}
 
