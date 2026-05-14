@@ -6,6 +6,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { useState, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ import {
   inToMm,
   mmToIn,
   ftToM,
+  mToFt,
   lbsToKg,
   kgToLbs,
   NmToFtLb,
@@ -35,6 +37,7 @@ import {
   NoResultBox,
   PresetChipStrip,
   SavePresetModal,
+  ResetButton,
   ui,
 } from '../../src/components/CalculatorUI';
 
@@ -55,6 +58,24 @@ export default function CalculatorScreen() {
 
   const toggleAdvanced = (key: string) =>
     setShowAdvanced((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const handleReset = () => {
+    Alert.alert('Reset inputs?', 'Restores tube, load and position to defaults.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reset',
+        style: 'destructive',
+        onPress: () => {
+          setDiameter(imperial ? mmToIn(48).toFixed(3) : '48');
+          setThickness(imperial ? mmToIn(5).toFixed(3) : '5');
+          setLength(imperial ? mToFt(4).toFixed(2) : '4');
+          setLoad(imperial ? kgToLbs(10).toFixed(1) : '10');
+          setDistance(imperial ? mmToIn(1000).toFixed(1) : '1000');
+          setIsCenter(true);
+        },
+      },
+    ]);
+  };
 
   const loadPreset = (p: TubePreset) => {
     setDiameter(imperial ? mmToIn(p.d_o_mm).toFixed(3) : String(p.d_o_mm));
@@ -139,11 +160,14 @@ export default function CalculatorScreen() {
           keyboardShouldPersistTaps="handled"
           stickyHeaderIndices={[1]}
         >
-          <View>
-            <Text style={s.heading}>TubeCalc</Text>
-            <Text style={s.sub}>
-              {material.name} Aluminium · {units === 'metric' ? 'Metric' : 'Imperial'}
-            </Text>
+          <View style={s.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.heading}>TubeCalc</Text>
+              <Text style={s.sub}>
+                {material.name} Aluminium · {units === 'metric' ? 'Metric' : 'Imperial'}
+              </Text>
+            </View>
+            <ResetButton onPress={handleReset} />
           </View>
 
           <View style={s.stickyBar}>
@@ -466,6 +490,7 @@ const s = StyleSheet.create({
     letterSpacing: -0.5,
   },
   sub: { fontSize: 13, color: colors.textMuted, marginBottom: 16, marginTop: 2 },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   stickyBar: {
     backgroundColor: colors.background,
     borderBottomWidth: 1,

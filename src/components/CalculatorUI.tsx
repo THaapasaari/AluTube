@@ -142,6 +142,15 @@ export function DFReminder({ df }: { df: number }) {
   );
 }
 
+export function ResetButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity style={ui.resetBtn} onPress={onPress} activeOpacity={0.7}>
+      <Text style={ui.resetIcon}>↻</Text>
+      <Text style={ui.resetText}>Reset</Text>
+    </TouchableOpacity>
+  );
+}
+
 export function NoResultBox({ text }: { text: string }) {
   return (
     <View style={ui.noResultBox}>
@@ -390,6 +399,19 @@ export const ui = StyleSheet.create({
     alignItems: 'center',
   },
   noResultText: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+  },
+  resetIcon: { fontSize: 14, color: colors.primary, fontWeight: '700' },
+  resetText: { fontSize: 12, color: colors.text, fontWeight: '600' },
   presetRowOuter: { marginBottom: 8, marginHorizontal: -16 },
   presetRow: { paddingHorizontal: 16, gap: 8 },
   presetChip: {
