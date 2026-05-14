@@ -7,7 +7,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
 import { useSettings } from '../../src/hooks/useSettings';
@@ -42,7 +42,9 @@ import {
   ui,
 } from '../../src/components/CalculatorUI';
 
-export default function CantileverScreen() {
+export default function CantileverScreen({ isActive }: { isActive?: boolean }) {
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => { if (isActive) scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [isActive]);
   const { units, df, material } = useSettings();
   const imperial = units === 'imperial';
 
@@ -152,6 +154,7 @@ export default function CantileverScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
           stickyHeaderIndices={[1]}
@@ -159,7 +162,7 @@ export default function CantileverScreen() {
           <View>
             <AppHeader tabName="Cantilever" onReset={handleReset} />
             <Text style={s.sub}>
-              {material.name} Aluminium · Fixed at one end · {units === 'metric' ? 'Metric' : 'Imperial'}
+              {material.name} {material.category === 'aluminium' ? 'Aluminium' : 'Steel'} · Fixed at one end · {units === 'metric' ? 'Metric' : 'Imperial'}
             </Text>
           </View>
 

@@ -8,7 +8,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
 import { useSettings } from '../../src/hooks/useSettings';
@@ -41,7 +41,9 @@ import {
   ui,
 } from '../../src/components/CalculatorUI';
 
-export default function CalculatorScreen() {
+export default function CalculatorScreen({ isActive }: { isActive?: boolean }) {
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => { if (isActive) scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [isActive]);
   const { units, df, material } = useSettings();
   const imperial = units === 'imperial';
 
@@ -156,6 +158,7 @@ export default function CalculatorScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
           stickyHeaderIndices={[1]}
@@ -163,7 +166,7 @@ export default function CalculatorScreen() {
           <View>
             <AppHeader tabName="Simple Load" onReset={handleReset} />
             <Text style={s.sub}>
-              {material.name} Aluminium · {units === 'metric' ? 'Metric' : 'Imperial'}
+              {material.name} {material.category === 'aluminium' ? 'Aluminium' : 'Steel'} · {units === 'metric' ? 'Metric' : 'Imperial'}
             </Text>
           </View>
 

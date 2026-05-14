@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-n
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import { LoadStatus } from './BeamDiagram';
+import { usePagerScroll } from '../hooks/usePagerScroll';
 
 interface Props {
   L_mm: number;
@@ -152,6 +153,10 @@ function Handle({
   const startPixelRef = useRef(0);
   const lastTapRef = useRef(0);
 
+  const setPagerScroll = usePagerScroll();
+  const setPagerScrollRef = useRef(setPagerScroll);
+  setPagerScrollRef.current = setPagerScroll;
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -162,6 +167,7 @@ function Handle({
         onPanResponderTerminationRequest: () => false,
         onShouldBlockNativeResponder: () => true,
         onPanResponderGrant: () => {
+          setPagerScrollRef.current(false);
           const w = trackWidthRef.current;
           startPixelRef.current = w > 0 ? (aRef.current / LRef.current) * w : 0;
         },
@@ -172,6 +178,7 @@ function Handle({
           onChangeRef.current((newPixel / w) * LRef.current);
         },
         onPanResponderRelease: (_, g) => {
+          setPagerScrollRef.current(true);
           const travel = Math.hypot(g.dx, g.dy);
           if (travel <= TAP_MAX_TRAVEL) {
             const now = Date.now();
@@ -184,6 +191,7 @@ function Handle({
             }
           }
         },
+        onPanResponderTerminate: () => { setPagerScrollRef.current(true); },
       }),
     []
   );

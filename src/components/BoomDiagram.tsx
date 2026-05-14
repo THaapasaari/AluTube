@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-n
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import { LoadStatus } from './BeamDiagram';
+import { usePagerScroll } from '../hooks/usePagerScroll';
 
 // Snap within this fraction of L from each snap point
 const SNAP_FRACTION = 0.025;
@@ -66,6 +67,10 @@ export default function BoomDiagram({
   const snappedRef = useRef(false);
   const lastTapRef = useRef(0);
 
+  const setPagerScroll = usePagerScroll();
+  const setPagerScrollRef = useRef(setPagerScroll);
+  setPagerScrollRef.current = setPagerScroll;
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -76,6 +81,7 @@ export default function BoomDiagram({
         onPanResponderTerminationRequest: () => false,
         onShouldBlockNativeResponder: () => true,
         onPanResponderGrant: () => {
+          setPagerScrollRef.current(false);
           const w = trackWidthRef.current;
           const a = Math.max(MIN_FRAC * LRef.current, Math.min(MAX_FRAC * LRef.current, aRef.current));
           startPixelRef.current = w > 0 ? (a / LRef.current) * w : 0;
@@ -107,6 +113,7 @@ export default function BoomDiagram({
           onChangeRef.current(newA);
         },
         onPanResponderRelease: (_, g) => {
+          setPagerScrollRef.current(true);
           const travel = Math.hypot(g.dx, g.dy);
           if (travel <= TAP_MAX_TRAVEL) {
             const now = Date.now();
@@ -119,7 +126,7 @@ export default function BoomDiagram({
             }
           }
         },
-        onPanResponderTerminate: () => {},
+        onPanResponderTerminate: () => { setPagerScrollRef.current(true); },
       }),
     []
   );

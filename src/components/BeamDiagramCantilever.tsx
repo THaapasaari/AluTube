@@ -4,6 +4,7 @@ import Svg, { Line } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import { LoadStatus } from './BeamDiagram';
+import { usePagerScroll } from '../hooks/usePagerScroll';
 
 interface Props {
   L_mm: number;
@@ -54,6 +55,10 @@ export default function BeamDiagramCantilever({
   const startPixelRef = useRef(0);
   const lastTapRef = useRef(0);
 
+  const setPagerScroll = usePagerScroll();
+  const setPagerScrollRef = useRef(setPagerScroll);
+  setPagerScrollRef.current = setPagerScroll;
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -64,6 +69,7 @@ export default function BeamDiagramCantilever({
         onPanResponderTerminationRequest: () => false,
         onShouldBlockNativeResponder: () => true,
         onPanResponderGrant: () => {
+          setPagerScrollRef.current(false);
           const w = trackWidthRef.current;
           startPixelRef.current = w > 0 ? (aRef.current / LRef.current) * w : 0;
         },
@@ -74,6 +80,7 @@ export default function BeamDiagramCantilever({
           onChangeRef.current((newPixel / w) * LRef.current);
         },
         onPanResponderRelease: (_, g) => {
+          setPagerScrollRef.current(true);
           // Double-tap → snap to tip
           const travel = Math.hypot(g.dx, g.dy);
           if (travel <= TAP_MAX_TRAVEL) {
@@ -87,6 +94,7 @@ export default function BeamDiagramCantilever({
             }
           }
         },
+        onPanResponderTerminate: () => { setPagerScrollRef.current(true); },
       }),
     []
   );

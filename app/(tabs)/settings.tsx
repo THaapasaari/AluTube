@@ -8,7 +8,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings, UnitSystem } from '../../src/hooks/useSettings';
 import { colors } from '../../src/theme/colors';
@@ -17,7 +17,9 @@ import { AppHeader } from '../../src/components/CalculatorUI';
 
 const DF_PRESETS = [1, 2, 3, 4, 5, 6, 7];
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ isActive }: { isActive?: boolean }) {
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => { if (isActive) scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [isActive]);
   const { units, setUnits, df, setDf, material, materialId, setMaterialId } = useSettings();
   const [dfPickerOpen, setDfPickerOpen] = useState(false);
   const [matPickerOpen, setMatPickerOpen] = useState(false);
@@ -42,7 +44,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={s.scroll}>
+      <ScrollView ref={scrollRef} contentContainerStyle={s.scroll}>
         <AppHeader tabName="Settings" />
 
         <Section title="Default Units">

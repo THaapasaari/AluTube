@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
+import { usePagerScroll } from '../hooks/usePagerScroll';
 
 // Drag is "snapped" when within this fraction of the beam length from centre
 const SNAP_FRACTION = 0.025;
@@ -72,6 +73,10 @@ export default function BeamDiagram({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
+  const setPagerScroll = usePagerScroll();
+  const setPagerScrollRef = useRef(setPagerScroll);
+  setPagerScrollRef.current = setPagerScroll;
+
   // Snap-state: remembers whether we're currently inside the centre snap zone,
   // so we only fire one haptic per crossing (not on every move event).
   const snappedRef = useRef(false);
@@ -90,6 +95,7 @@ export default function BeamDiagram({
         onPanResponderTerminationRequest: () => false,
         onShouldBlockNativeResponder: () => true,
         onPanResponderGrant: () => {
+          setPagerScrollRef.current(false);
           const w = trackWidthRef.current;
           const a = isCenterRef.current ? LRef.current / 2 : aRef.current;
           startPixelRef.current = w > 0 ? (a / LRef.current) * w : 0;
@@ -119,6 +125,7 @@ export default function BeamDiagram({
           }
         },
         onPanResponderRelease: (_, g) => {
+          setPagerScrollRef.current(true);
           // Treat a near-zero-travel gesture as a tap; two taps within
           // DOUBLE_TAP_MS reset the load to the centre.
           const travel = Math.hypot(g.dx, g.dy);
@@ -133,7 +140,7 @@ export default function BeamDiagram({
             }
           }
         },
-        onPanResponderTerminate: () => {},
+        onPanResponderTerminate: () => { setPagerScrollRef.current(true); },
       }),
     []
   );
