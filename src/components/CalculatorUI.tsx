@@ -453,9 +453,9 @@ export const ui = StyleSheet.create({
   },
   appName: {
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: 'Oswald_700Bold',
     color: colors.text,
-    letterSpacing: -0.3,
+    letterSpacing: 0.5,
   },
   appNameDivider: {
     fontSize: 22,
@@ -463,10 +463,10 @@ export const ui = StyleSheet.create({
     fontWeight: '300',
   },
   tabName: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontFamily: 'Oswald_700Bold',
     color: colors.primary,
-    letterSpacing: -0.2,
+    letterSpacing: 0.5,
   },
   resetBtn: {
     width: 36,

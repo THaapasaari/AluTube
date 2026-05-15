@@ -256,12 +256,16 @@ export default function SettingsScreen({ isActive }: { isActive?: boolean }) {
 
         <Section title="About TubeCalc">
           <Text style={s.body}>
-            TubeCalc estimates point-load structural limits for aluminium tubes
-            modelled as a simply-supported beam. All formulas are verified against
-            reference spreadsheet calculations.{'\n\n'}
-            Always have your rigging verified by a qualified structural engineer for
-            safety-critical applications.
+            TubeCalc calculates structural limits for aluminium and steel tubes across four loading configurations: simply supported with one or two point loads, cantilever, and boom (overhanging with counterweight).{'\n\n'}
+            Supported materials include common 6000-series aluminium alloys and structural steel grades (S235–S420), with both metric and imperial variants. All formulas are verified against reference spreadsheet calculations.{'\n\n'}
+            Results include deflection, bending moment, bending stress, and load capacity, with shear force and bending moment diagrams. Support reactions are shown on the beam diagram when enabled in Display settings.
           </Text>
+          <View style={s.warningRow}>
+            <Text style={s.warningIcon}>⚠</Text>
+            <Text style={s.warningText}>
+              Always have your rigging verified by a qualified structural engineer for safety-critical applications.
+            </Text>
+          </View>
         </Section>
 
         <Section title="Display">
@@ -341,7 +345,7 @@ function UnitToggle({
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingBottom: 40 },
+  scroll: { padding: 20, paddingBottom: 40, maxWidth: 640, alignSelf: 'center', width: '100%' },
   section: { marginBottom: 24 },
   sectionTitle: {
     fontSize: 12,
@@ -378,6 +382,9 @@ const s = StyleSheet.create({
   toggleText: { fontSize: 15, color: colors.textMuted, fontWeight: '500' },
   toggleTextActive: { color: colors.primary, fontWeight: '700' },
   body: { fontSize: 14, color: colors.textMuted, lineHeight: 22 },
+  warningRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12 },
+  warningIcon: { fontSize: 16, color: colors.warning, lineHeight: 22 },
+  warningText: { flex: 1, fontSize: 14, color: colors.warning, lineHeight: 22 },
   dropdown: {
     flexDirection: 'row',
     alignItems: 'center',

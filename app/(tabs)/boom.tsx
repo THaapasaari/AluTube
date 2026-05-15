@@ -434,7 +434,7 @@ export default function BoomScreen({ isActive }: { isActive?: boolean }) {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 16, paddingBottom: 40 },
+  scroll: { padding: 16, paddingBottom: 40, maxWidth: 640, alignSelf: 'center', width: '100%' },
   sub: { fontSize: 12, color: colors.textMuted, marginBottom: 14, marginTop: 4, marginLeft: 56 },
   stickyBar: {
     backgroundColor: colors.background,
