@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "TubeCalc",
-    "slug": "TubeCalc",
+    "name": "TubeLoad",
+    "slug": "TubeLoad",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/TubeCalcApp_icon.png",
+    "icon": "./assets/TubeLoadApp_icon.png",
     "userInterfaceStyle": "dark",
-    "scheme": "tubecalc",
+    "scheme": "tubeload",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/TubeCalcApp_icon.png",
+        "foregroundImage": "./assets/TubeLoadApp_icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

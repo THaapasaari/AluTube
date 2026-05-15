@@ -137,7 +137,7 @@ export function DFReminder({ df }: { df: number }) {
 
 /**
  * Standard top-of-screen header used on every calculator tab.
- * Layout: [icon placeholder]  TubeCalc                  [Reset]
+ * Layout: [icon placeholder]  TubeLoad                  [Reset]
  *                              <tab name, smaller font>
  */
 export function AppHeader({
@@ -150,11 +150,11 @@ export function AppHeader({
   return (
     <View style={ui.appHeader}>
       <Image
-        source={require('../../assets/TubeCalcApp_icon.png')}
+        source={require('../../assets/TubeLoadApp_icon.png')}
         style={ui.appIcon}
       />
       <View style={ui.appHeaderTitles}>
-        <Text style={ui.appName}>TubeCalc</Text>
+        <Text style={ui.appName}>TubeLoad</Text>
         <Text style={ui.appNameDivider}>│</Text>
         <Text style={ui.tabName}>{tabName}</Text>
       </View>

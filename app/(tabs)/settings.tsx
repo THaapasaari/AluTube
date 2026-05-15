@@ -254,9 +254,9 @@ export default function SettingsScreen({ isActive }: { isActive?: boolean }) {
           </Text>
         </Section>
 
-        <Section title="About TubeCalc">
+        <Section title="About TubeLoad">
           <Text style={s.body}>
-            TubeCalc calculates structural limits for aluminium and steel tubes across four loading configurations: simply supported with one or two point loads, cantilever, and boom (overhanging with counterweight).{'\n\n'}
+            TubeLoad calculates structural limits for aluminium and steel tubes across four loading configurations: simply supported with one or two point loads, cantilever, and boom (overhanging with counterweight).{'\n\n'}
             Supported materials include common 6000-series aluminium alloys and structural steel grades (S235–S420), with both metric and imperial variants. All formulas are verified against reference spreadsheet calculations.{'\n\n'}
             Results include deflection, bending moment, bending stress, and load capacity, with shear force and bending moment diagrams. Support reactions are shown on the beam diagram when enabled in Display settings.
           </Text>

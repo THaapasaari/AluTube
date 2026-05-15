@@ -1,4 +1,4 @@
-# AluTube — Claude Code Notes
+# TubeLoad — Claude Code Notes
 
 ## What this app is
 A structural calculator for film-set riggers. Computes deflection, bending moment, bending stress, and load capacity for aluminium and steel tubes across four loading configurations (simple, two loads, cantilever, boom). All math is verified against a reference Excel spreadsheet.

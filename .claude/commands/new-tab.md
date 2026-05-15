@@ -1,6 +1,6 @@
-# /new-tab — Scaffold a new AluTube calculator tab
+# /new-tab — Scaffold a new TubeLoad calculator tab
 
-Add a new calculator tab to the AluTube app. The user will supply a tab name and load type; you do the rest.
+Add a new calculator tab to the TubeLoad app. The user will supply a tab name and load type; you do the rest.
 
 ## What to ask the user (if not already provided in $ARGUMENTS)
 
