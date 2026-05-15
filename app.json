@@ -16,7 +16,10 @@
     "ios": {
       "bundleIdentifier": "com.haapasaari.tubecalc",
       "buildNumber": "1",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -33,6 +36,12 @@
     "plugins": [
       "expo-router",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e40460a2-5fa9-44b5-8b34-61d1e6560263"
+      }
+    }
   }
 }
