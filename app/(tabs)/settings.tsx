@@ -415,6 +415,9 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: colors.border,
     maxHeight: '82%',
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   modalTitle: {
     fontSize: 13,
@@ -465,6 +468,9 @@ const s = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: colors.border,
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
   },
   dialogHint: { fontSize: 12, color: colors.textMuted, marginBottom: 12, lineHeight: 18 },
   dialogInput: {
