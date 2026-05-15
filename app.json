@@ -14,7 +14,7 @@
       "backgroundColor": "#0A1628"
     },
     "ios": {
-      "bundleIdentifier": "fi.haapasaari.tubecalc",
+      "bundleIdentifier": "com.haapasaari.tubecalc",
       "buildNumber": "1",
       "supportsTablet": true
     },
