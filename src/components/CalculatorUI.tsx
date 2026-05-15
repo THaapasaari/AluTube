@@ -3,7 +3,7 @@
  * each screen keeps the per-screen files focused on their own math and layout,
  * and means a tweak to e.g. ResultCard automatically applies everywhere.
  */
-import { useRef } from 'react';
+
 import {
   View,
   Text,
@@ -40,12 +40,10 @@ export function InputRow({
   onChangeText: (v: string) => void;
   placeholder?: string;
 }) {
-  const inputRef = useRef<TextInput>(null);
   return (
     <View style={ui.row}>
       <Text style={ui.label}>{label}</Text>
       <TextInput
-        ref={inputRef}
         style={ui.input}
         value={value}
         onChangeText={(v) => onChangeText(v.replace(',', '.'))}
@@ -53,13 +51,7 @@ export function InputRow({
         placeholder={placeholder}
         placeholderTextColor={colors.textDim}
         selectionColor={colors.primary}
-        onFocus={() => {
-          // Defer one tick so iOS's tap-position caret is overridden.
-          setTimeout(() => {
-            const end = value.length;
-            inputRef.current?.setNativeProps({ selection: { start: end, end } });
-          }, 0);
-        }}
+        selectTextOnFocus
       />
     </View>
   );

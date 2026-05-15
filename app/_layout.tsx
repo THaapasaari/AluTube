@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SettingsProvider } from '../src/hooks/useSettings';
+import { PresetsProvider } from '../src/hooks/usePresets';
 import { colors } from '../src/theme/colors';
 import { useFonts, Oswald_700Bold } from '@expo-google-fonts/oswald';
 import * as SplashScreen from 'expo-splash-screen';
@@ -21,8 +22,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SettingsProvider>
-        <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false }} />
+        <PresetsProvider>
+          <StatusBar style="light" />
+          <Stack screenOptions={{ headerShown: false }} />
+        </PresetsProvider>
       </SettingsProvider>
     </GestureHandlerRootView>
   );
