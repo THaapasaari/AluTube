@@ -48,7 +48,7 @@ export default function ForceDiagram({
   maxLabel,
   height,
 }: Props) {
-  const sections = mode === 'full' ? 3 : 1;
+  const sections = mode === 'full' ? 2 : 1;
   const beamSectionH = 60;
   const diagramH = 90;
   const calcH = beamSectionH + sections * diagramH + 20;

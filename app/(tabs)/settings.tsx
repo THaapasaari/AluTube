@@ -16,7 +16,7 @@ import { colors } from '../../src/theme/colors';
 import { MATERIALS, ALUMINIUM_IDS, STEEL_IDS } from '../../src/engineering/materials';
 import { AppHeader } from '../../src/components/CalculatorUI';
 
-const DF_PRESETS = [1, 2, 3, 4, 5, 6, 7];
+const DF_PRESETS = [1, 3, 5, 7];
 
 export default function SettingsScreen({ isActive }: { isActive?: boolean }) {
   const scrollRef = useRef<ScrollView>(null);
@@ -216,16 +216,21 @@ export default function SettingsScreen({ isActive }: { isActive?: boolean }) {
               <Text style={s.dialogHint}>
                 Enter a positive number. Allowable stress = σ_yield / DF.
               </Text>
-              <TextInput
-                style={s.dialogInput}
-                value={customDfText}
-                onChangeText={setCustomDfText}
-                keyboardType="decimal-pad"
-                autoFocus
-                placeholder="e.g. 2.5"
-                placeholderTextColor={colors.textDim}
-                selectionColor={colors.primary}
-              />
+              <View style={s.dialogInputRow}>
+                <TextInput
+                  style={s.dialogInput}
+                  value={customDfText}
+                  onChangeText={setCustomDfText}
+                  keyboardType="decimal-pad"
+                  autoFocus
+                  placeholder="2.5"
+                  placeholderTextColor={colors.textDim}
+                  selectionColor={colors.primary}
+                  textAlign="right"
+                  maxLength={5}
+                />
+                <Text style={s.dialogInputSuffix}>:1</Text>
+              </View>
               <View style={s.dialogActions}>
                 <TouchableOpacity
                   style={[s.dialogBtn, s.dialogCancel]}
@@ -473,8 +478,15 @@ const s = StyleSheet.create({
     alignSelf: 'center',
   },
   dialogHint: { fontSize: 12, color: colors.textMuted, marginBottom: 12, lineHeight: 18 },
+  dialogInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 18,
+  },
   dialogInput: {
-    fontSize: 18,
+    fontSize: 22,
     color: colors.text,
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
@@ -482,7 +494,12 @@ const s = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: 14,
+    fontWeight: '700',
+    width: 90,
+  },
+  dialogInputSuffix: {
+    fontSize: 22,
+    color: colors.primary,
     fontWeight: '700',
   },
   dialogActions: { flexDirection: 'row', gap: 10 },
