@@ -16,6 +16,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import Svg, { Text as SvgText, TSpan } from 'react-native-svg';
 import { colors } from '../theme/colors';
 import { TubePreset } from '../hooks/usePresets';
 
@@ -154,7 +155,16 @@ export function AppHeader({
         style={ui.appIcon}
       />
       <View style={ui.appHeaderTitles}>
-        <Text style={ui.appName}>TubeLoad</Text>
+        <Svg width={102} height={26}>
+          <SvgText
+            y={20}
+            fontSize={20}
+            fontWeight="900"
+          >
+            <TSpan x={1} fill={colors.text}>Tube</TSpan>
+            <TSpan fill={colors.primary}>Load</TSpan>
+          </SvgText>
+        </Svg>
         <Text style={ui.appNameDivider}>│</Text>
         <Text style={ui.tabName}>{tabName}</Text>
       </View>
@@ -439,25 +449,25 @@ export const ui = StyleSheet.create({
   appHeaderTitles: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     flexWrap: 'wrap',
     gap: 8,
   },
   appName: {
-    fontSize: 22,
-    fontFamily: 'Oswald_700Bold',
-    color: colors.text,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.primary,
     letterSpacing: 0.5,
   },
   appNameDivider: {
     fontSize: 22,
     color: colors.border,
-    fontWeight: '300',
+    fontWeight: '600',
   },
   tabName: {
-    fontSize: 22,
-    fontFamily: 'Oswald_700Bold',
-    color: colors.primary,
+    fontSize: 20,
+    fontWeight: '400',
+    color: colors.text,
     letterSpacing: 0.5,
   },
   resetBtn: {
