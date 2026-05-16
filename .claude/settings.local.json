@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(export PATH=\"/opt/homebrew/bin:$PATH\")",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(node -p \"require\\('./package.json'\\).dependencies.expo\")",
+      "Bash(node -p \"require\\('./package.json'\\).dependencies['expo-splash-screen']\")",
+      "Bash(sips -g pixelWidth -g pixelHeight -g hasAlpha assets/TubeLoadApp_icon.png)"
     ]
   }
 }
