@@ -34,7 +34,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/TubeLoadApp_icon.png",
+          "image": "./assets/TubeLoadSplash_icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#0A1628"
