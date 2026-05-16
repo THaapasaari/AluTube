@@ -131,7 +131,7 @@ export function DFReminder({ df }: { df: number }) {
     <View style={ui.dfReminder}>
       <Text style={ui.dfReminderLabel}>Design Factor</Text>
       <Text style={ui.dfReminderValue}>{df}:1</Text>
-      <Text style={ui.dfReminderHint}>change in Settings ⚙</Text>
+      <Text style={ui.dfReminderHint}>change in Settings</Text>
     </View>
   );
 }
@@ -383,11 +383,11 @@ export const ui = StyleSheet.create({
     borderRadius: 4,
     letterSpacing: 0.5,
   },
-  resultRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  resultLabel: { fontSize: 13, color: colors.textMuted },
+  resultRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4, gap: 12 },
+  resultLabel: { fontSize: 13, color: colors.textMuted, flexShrink: 0 },
   resultValue: { fontSize: 15, fontWeight: '700', color: colors.text },
   resultValueOver: { color: colors.danger },
-  resultValueLimit: { fontSize: 13, color: colors.textMuted },
+  resultValueLimit: { fontSize: 13, color: colors.textMuted, flexShrink: 1, textAlign: 'right' },
   barBg: {
     height: 5,
     backgroundColor: colors.border,
