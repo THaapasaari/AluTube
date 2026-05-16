@@ -9,13 +9,13 @@
     "scheme": "tubeload",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/TubeLoadApp_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0A1628"
     },
     "ios": {
       "bundleIdentifier": "com.haapasaari.tubecalc",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
